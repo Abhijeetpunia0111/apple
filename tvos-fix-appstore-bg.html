@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>tvOS — Fix App Store Background</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    :root {
+      --bg-900: #060709;
+      --bg-800: #0C0E14;
+      --bg-700: #11141C;
+      --bg-600: #181C28;
+      --bg-500: #1F2535;
+      --border-subtle: #222840;
+      --border-default: #2C3450;
+      --text-100: #EDF1FF;
+      --text-200: #B2BFDA;
+      --text-300: #627090;
+      --text-400: #38455C;
+      --amber: #F59E0B;
+      --amber-hover: #FBBF24;
+      --amber-dim: rgba(245,158,11,0.12);
+      --green: #2DD4BF;
+      --green-dim: rgba(45,212,191,0.1);
+      --red: #F56565;
+      --red-dim: rgba(245,101,101,0.12);
+      --r: 8px;
+      --font-mono: 'IBM Plex Mono', monospace;
+      --font-ui: 'Barlow', sans-serif;
+      --font-display: 'Barlow Condensed', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-ui);
+      background: var(--bg-900);
+      color: var(--text-100);
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.028) 1px, transparent 1px);
+      background-size: 24px 24px;
+      pointer-events: none; z-index: 0;
+    }
+
+    * { position: relative; z-index: 1; }
+
+    /* ── HEADER ── */
+    header {
+      height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 40px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(6,7,9,0.9);
+      backdrop-filter: blur(16px);
+      position: sticky; top: 0; z-index: 200;
+    }
+
+    .logo {
+      display: flex; align-items: center; gap: 12px;
+      font-family: var(--font-display);
+      font-size: 17px; font-weight: 800; letter-spacing: 0.02em;
+    }
+
+    .logo-icon {
+      width: 28px; height: 28px;
+      background: var(--amber); border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-icon svg { width: 15px; height: 15px; color: #000; stroke-width: 2.4; }
+
+    .badge {
+      font-family: var(--font-mono); font-size: 9px; font-weight: 500;
+      color: var(--amber); background: var(--amber-dim);
+      border: 1px solid rgba(245,158,11,0.3);
+      border-radius: 4px; padding: 2px 7px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+
+    .header-back {
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--text-300); text-decoration: none;
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 12px; border: 1px solid var(--border-subtle);
+      border-radius: 6px; transition: all 0.15s;
+    }
+    .header-back:hover { color: var(--text-100); border-color: var(--border-default); background: var(--bg-600); }
+
+    /* ── MAIN ── */
+    main { max-width: 860px; margin: 0 auto; padding: 52px 24px 100px; }
+
+    .page-eyebrow {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.14em; color: var(--amber);
+      text-transform: uppercase; margin-bottom: 10px;
+      opacity: 0; animation: fadeUp 0.35s 0s ease forwards;
+    }
+
+    .page-title {
+      font-family: var(--font-display); font-size: 42px;
+      font-weight: 800; line-height: 1; letter-spacing: -0.01em;
+      margin-bottom: 8px;
+      opacity: 0; animation: fadeUp 0.35s 0.07s ease forwards;
+    }
+    .page-title span { color: var(--amber); }
+
+    .page-sub {
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--text-400); margin-bottom: 44px;
+      opacity: 0; animation: fadeUp 0.35s 0.13s ease forwards;
+    }
+
+    /* ── TWO-COLUMN UPLOAD GRID ── */
+    .upload-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+      opacity: 0; animation: fadeUp 0.35s 0.19s ease forwards;
+    }
+
+    .ucard {
+      background: var(--bg-800);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--r); overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .ucard.ready { border-color: rgba(245,158,11,0.45); }
+
+    .ucard-head {
+      display: flex; align-items: center; gap: 10px;
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .step-pill {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--bg-600); border: 1px solid var(--border-default);
+      font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+      color: var(--text-400);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all 0.2s;
+    }
+
+    .ucard.ready .step-pill {
+      background: var(--amber-dim); border-color: var(--amber); color: var(--amber);
+    }
+
+    .ucard-title {
+      font-family: var(--font-display); font-size: 13px;
+      font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--text-300);
+      transition: color 0.2s;
+    }
+    .ucard.ready .ucard-title { color: var(--text-100); }
+
+    .ext-tag {
+      margin-left: auto;
+      font-family: var(--font-mono); font-size: 9px;
+      color: var(--text-400); background: var(--bg-600);
+      border: 1px solid var(--border-subtle);
+      border-radius: 4px; padding: 2px 7px;
+    }
+
+    /* Drop zone */
+    .drop-zone {
+      padding: 32px 20px;
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      cursor: pointer; transition: background 0.15s; user-select: none;
+    }
+    .drop-zone:hover    { background: rgba(245,158,11,0.03); }
+    .drop-zone.drag-over { background: var(--amber-dim); }
+
+    .dz-icon {
+      width: 46px; height: 46px; border-radius: 11px;
+      background: var(--bg-600); border: 1px solid var(--border-default);
+      display: flex; align-items: center; justify-content: center; color: var(--text-400);
+    }
+    .dz-icon svg { width: 20px; height: 20px; }
+
+    .dz-text { font-size: 13px; color: var(--text-300); text-align: center; line-height: 1.5; }
+    .dz-text strong { color: var(--amber); font-weight: 600; }
+    .dz-hint { font-family: var(--font-mono); font-size: 10px; color: var(--text-400); text-align: center; }
+
+    /* Loaded state */
+    .loaded-info {
+      display: none; padding: 14px 16px;
+      align-items: center; gap: 12px;
+    }
+    .ucard.ready .drop-zone   { display: none; }
+    .ucard.ready .loaded-info { display: flex; }
+
+    .loaded-thumb {
+      width: 80px; height: 48px; border-radius: 5px;
+      overflow: hidden; background: var(--bg-700);
+      border: 1px solid var(--border-subtle); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .loaded-thumb canvas { width: 100%; height: 100%; display: block; }
+    .loaded-thumb svg { width: 24px; height: 24px; color: var(--amber); }
+
+    .loaded-meta { flex: 1; min-width: 0; }
+    .loaded-name {
+      font-family: var(--font-mono); font-size: 11px; color: var(--text-100);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px;
+    }
+    .loaded-size { font-family: var(--font-mono); font-size: 10px; color: var(--text-400); }
+
+    .clear-btn {
+      flex-shrink: 0; background: none;
+      border: 1px solid var(--border-default); border-radius: 5px;
+      color: var(--text-400); font-family: var(--font-mono);
+      font-size: 10px; padding: 4px 9px; cursor: pointer; transition: all 0.15s;
+    }
+    .clear-btn:hover { border-color: var(--red); color: var(--red); background: var(--red-dim); }
+
+    /* ── PREVIEW PANEL ── */
+    .preview-panel {
+      background: var(--bg-800);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--r); overflow: hidden;
+      margin-bottom: 20px;
+      opacity: 0; animation: fadeUp 0.35s 0.25s ease forwards;
+    }
+
+    .panel-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 11px 18px; border-bottom: 1px solid var(--border-subtle);
+    }
+    .panel-title {
+      font-family: var(--font-display); font-size: 12px;
+      font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text-400);
+    }
+    .panel-meta { font-family: var(--font-mono); font-size: 10px; color: var(--text-400); }
+
+    .preview-body {
+      display: grid; grid-template-columns: 1fr 40px 1fr;
+      align-items: center; padding: 20px 18px; gap: 0;
+    }
+
+    .prev-cell { display: flex; flex-direction: column; gap: 8px; }
+
+    .prev-label {
+      font-family: var(--font-mono); font-size: 9px;
+      letter-spacing: 0.05em; color: var(--text-400); text-transform: uppercase;
+    }
+
+    /* source: 4640×1440 = ~3.22:1 */
+    .prev-frame-src {
+      aspect-ratio: 4640 / 1440;
+      background: var(--bg-700); border: 1px solid var(--border-subtle);
+      border-radius: 5px; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* output: 1280×768 = 5:3 */
+    .prev-frame-out {
+      aspect-ratio: 1280 / 768;
+      background: var(--bg-700); border: 1px solid var(--border-subtle);
+      border-radius: 5px; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .prev-frame-src canvas,
+    .prev-frame-out canvas { width: 100%; height: 100%; display: block; }
+
+    .prev-placeholder {
+      font-family: var(--font-mono); font-size: 9px;
+      color: var(--text-400); text-align: center; line-height: 1.8; padding: 10px;
+    }
+
+    .arrow-cell {
+      display: flex; align-items: center; justify-content: center;
+      color: var(--amber); font-size: 20px; padding-top: 20px;
+    }
+
+    /* ── PATH TRACE ── */
+    .path-trace {
+      background: var(--bg-800);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--r); overflow: hidden;
+      margin-bottom: 20px;
+      opacity: 0; animation: fadeUp 0.35s 0.31s ease forwards;
+    }
+    .path-head {
+      padding: 10px 18px; border-bottom: 1px solid var(--border-subtle);
+      font-family: var(--font-display); font-size: 12px;
+      font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text-400);
+    }
+    .path-body { padding: 14px 18px; display: flex; flex-direction: column; gap: 8px; }
+
+    .path-row {
+      display: flex; align-items: center; gap: 10px;
+      font-family: var(--font-mono); font-size: 11px; color: var(--text-300);
+    }
+    .path-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--text-400); flex-shrink: 0;
+    }
+    .path-row.source .path-dot { background: var(--green); }
+    .path-row.source .path-file { color: var(--green); }
+    .path-row.target .path-dot { background: var(--amber); }
+    .path-row.target .path-file { color: var(--amber); }
+    .path-note { padding-left: 16px; color: var(--text-400); font-size: 10px; font-family: var(--font-mono); }
+
+    .path-tag {
+      font-size: 9px; padding: 1px 6px;
+      border-radius: 3px; font-weight: 500;
+      letter-spacing: 0.06em; text-transform: uppercase; flex-shrink: 0;
+    }
+    .tag-read  { background: var(--green-dim); color: var(--green); border: 1px solid rgba(45,212,191,0.25); }
+    .tag-write { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+
+    /* ── EXPORT ── */
+    .export-wrap {
+      opacity: 0; animation: fadeUp 0.35s 0.37s ease forwards;
+    }
+
+    .fix-btn {
+      width: 100%; height: 54px;
+      background: var(--amber); color: #000; border: none;
+      border-radius: var(--r);
+      font-family: var(--font-display); font-size: 18px;
+      font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      gap: 10px; transition: background 0.15s, opacity 0.15s;
+    }
+    .fix-btn:hover:not(:disabled) { background: var(--amber-hover); }
+    .fix-btn:disabled { opacity: 0.28; cursor: not-allowed; }
+    .fix-btn svg { width: 18px; height: 18px; }
+    .fix-btn.processing { background: var(--bg-600); color: var(--text-300); border: 1px solid var(--border-default); }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { display: inline-block; animation: spin 0.7s linear infinite; }
+
+    /* ── LOG ── */
+    .log-panel {
+      display: none; background: var(--bg-800);
+      border: 1px solid var(--border-subtle); border-radius: var(--r);
+      margin-top: 14px; max-height: 180px; overflow-y: auto;
+      font-family: var(--font-mono); font-size: 11px;
+    }
+    .log-panel.show { display: block; }
+    .log-row { display: flex; gap: 14px; padding: 5px 16px; border-bottom: 1px solid var(--border-subtle); }
+    .log-t { color: var(--text-400); flex-shrink: 0; }
+    .log-m { color: var(--text-200); }
+    .log-row.ok   .log-m { color: var(--green); }
+    .log-row.err  .log-m { color: var(--red); }
+    .log-row.proc .log-m { color: var(--amber); }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z"/>
+      </svg>
+    </div>
+    App Store BG Fixer
+    <span class="badge">Repair Tool</span>
+  </div>
+  <a class="header-back" href="tvos-asset-generator.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/>
+    </svg>
+    Back to Generator
+  </a>
+</header>
+
+<main>
+  <div class="page-eyebrow">// Surgical Repair Utility</div>
+  <h1 class="page-title">Fix <span>App Store Background</span></h1>
+  <p class="page-sub">Upload your 4640×1440 background image → crops to 1280×768 with zero quality loss → patches the ZIP</p>
+
+  <div class="upload-grid">
+
+    <!-- Step 1: ZIP -->
+    <div class="ucard" id="card-zip">
+      <div class="ucard-head">
+        <div class="step-pill">1</div>
+        <span class="ucard-title">Existing .xcassets ZIP</span>
+        <span class="ext-tag">.zip</span>
+      </div>
+      <div class="drop-zone" id="dz-zip" onclick="document.getElementById('fi-zip').click()">
+        <div class="dz-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/>
+          </svg>
+        </div>
+        <div class="dz-text"><strong>Drop ZIP here</strong> or click to browse</div>
+        <div class="dz-hint">Your previously exported .xcassets.zip</div>
+      </div>
+      <div class="loaded-info" id="info-zip">
+        <div class="loaded-thumb" id="thumb-zip">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/>
+          </svg>
+        </div>
+        <div class="loaded-meta">
+          <div class="loaded-name" id="name-zip">—</div>
+          <div class="loaded-size" id="size-zip">—</div>
+        </div>
+        <button class="clear-btn" onclick="clearZip()">✕ Clear</button>
+      </div>
+      <input type="file" id="fi-zip" accept=".zip" style="display:none" onchange="handleZip(event)">
+    </div>
+
+    <!-- Step 2: Background image -->
+    <div class="ucard" id="card-bg">
+      <div class="ucard-head">
+        <div class="step-pill">2</div>
+        <span class="ucard-title">Background Image</span>
+        <span class="ext-tag">4640 × 1440</span>
+      </div>
+      <div class="drop-zone" id="dz-bg" onclick="document.getElementById('fi-bg').click()">
+        <div class="dz-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/>
+          </svg>
+        </div>
+        <div class="dz-text"><strong>Drop image here</strong> or click to browse</div>
+        <div class="dz-hint">Original high-res background (PNG / JPG)</div>
+      </div>
+      <div class="loaded-info" id="info-bg">
+        <div class="loaded-thumb" id="thumb-bg"></div>
+        <div class="loaded-meta">
+          <div class="loaded-name" id="name-bg">—</div>
+          <div class="loaded-size" id="size-bg">—</div>
+        </div>
+        <button class="clear-btn" onclick="clearBg()">✕ Clear</button>
+      </div>
+      <input type="file" id="fi-bg" accept="image/*" style="display:none" onchange="handleBg(event)">
+    </div>
+
+  </div>
+
+  <!-- Preview panel: source → output -->
+  <div class="preview-panel">
+    <div class="panel-head">
+      <span class="panel-title">Crop Preview</span>
+      <span class="panel-meta">multi-step downscale · imageSmoothingQuality high</span>
+    </div>
+    <div class="preview-body">
+      <div class="prev-cell">
+        <div class="prev-label">Source — 4640 × 1440 (your upload)</div>
+        <div class="prev-frame-src" id="prev-src">
+          <div class="prev-placeholder">Upload background image<br>to see source preview</div>
+        </div>
+      </div>
+      <div class="arrow-cell">→</div>
+      <div class="prev-cell">
+        <div class="prev-label">Output — appstore_background.png (1280 × 768)</div>
+        <div class="prev-frame-out" id="prev-out">
+          <div class="prev-placeholder">Output preview will<br>appear here</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Path trace -->
+  <div class="path-trace">
+    <div class="path-head">What Gets Changed</div>
+    <div class="path-body">
+      <div class="path-row source">
+        <div class="path-dot"></div>
+        <span class="path-tag tag-read">source</span>
+        <span class="path-file">Your uploaded background image (4640×1440)</span>
+      </div>
+      <div class="path-note">└ cover crop → 1280×768 via multi-step halving (zero quality loss)</div>
+      <div class="path-row target">
+        <div class="path-dot"></div>
+        <span class="path-tag tag-write">replace</span>
+        <span class="path-file">App Icon - App Store.imagestack / Back.imagestacklayer / Content.imageset / <strong>appstore_background.png</strong></span>
+      </div>
+      <div class="path-note">└ all other files in the ZIP remain untouched</div>
+    </div>
+  </div>
+
+  <!-- Export -->
+  <div class="export-wrap">
+    <button class="fix-btn" id="fixBtn" disabled onclick="runFix()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+      </svg>
+      Fix &amp; Export ZIP
+    </button>
+    <div class="log-panel" id="logPanel"></div>
+  </div>
+</main>
+
+<script>
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+const state = {
+  zipFile: null,
+  zipName: '',
+  bgImg:   null
+};
+
+// ═══════════════════════════════════════════
+//  DRAG & DROP
+// ═══════════════════════════════════════════
+[['dz-zip','zip'], ['dz-bg','bg']].forEach(([id, type]) => {
+  const dz = document.getElementById(id);
+  dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', ()  => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f) (type === 'zip' ? processZip : processBg)(f);
+  });
+});
+
+function handleZip(e) { if (e.target.files[0]) processZip(e.target.files[0]); }
+function handleBg(e)  { if (e.target.files[0]) processBg(e.target.files[0]); }
+
+// ═══════════════════════════════════════════
+//  FILE PROCESSORS
+// ═══════════════════════════════════════════
+function processZip(file) {
+  if (!file.name.toLowerCase().endsWith('.zip')) {
+    log('err', '✕  File must be a .zip'); return;
+  }
+  state.zipFile = file;
+  state.zipName = file.name.replace(/\.zip$/i, '');
+  document.getElementById('card-zip').classList.add('ready');
+  document.getElementById('name-zip').textContent = file.name;
+  document.getElementById('size-zip').textContent = (file.size / 1024).toFixed(0) + ' KB';
+  updateBtn();
+  log('ok', `ZIP loaded: ${file.name}`);
+}
+
+function processBg(file) {
+  if (!file.type.startsWith('image/')) { log('err', '✕  Not an image file.'); return; }
+  const fr = new FileReader();
+  fr.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      state.bgImg = img;
+      document.getElementById('card-bg').classList.add('ready');
+      document.getElementById('name-bg').textContent = file.name;
+      document.getElementById('size-bg').textContent = `${img.naturalWidth} × ${img.naturalHeight} px`;
+
+      // Thumbnail
+      const thumb = document.getElementById('thumb-bg');
+      thumb.innerHTML = '';
+      const tc = makeCanvas(160, 96);
+      drawCover(img, tc);
+      tc.style.cssText = 'width:100%;height:100%;display:block;';
+      thumb.appendChild(tc);
+
+      renderPreviews(img);
+      updateBtn();
+      log('ok', `Background loaded: ${file.name} — ${img.naturalWidth}×${img.naturalHeight}`);
+    };
+    img.src = e.target.result;
+  };
+  fr.readAsDataURL(file);
+}
+
+function clearZip() {
+  state.zipFile = null;
+  document.getElementById('card-zip').classList.remove('ready');
+  document.getElementById('fi-zip').value = '';
+  updateBtn();
+}
+
+function clearBg() {
+  state.bgImg = null;
+  document.getElementById('card-bg').classList.remove('ready');
+  document.getElementById('fi-bg').value = '';
+  document.getElementById('prev-src').innerHTML = '<div class="prev-placeholder">Upload background image<br>to see source preview</div>';
+  document.getElementById('prev-out').innerHTML = '<div class="prev-placeholder">Output preview will<br>appear here</div>';
+  updateBtn();
+}
+
+function updateBtn() {
+  document.getElementById('fixBtn').disabled = !(state.zipFile && state.bgImg);
+}
+
+// ═══════════════════════════════════════════
+//  CANVAS HELPERS  (multi-step, high quality)
+// ═══════════════════════════════════════════
+function makeCanvas(w, h) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h; return c;
+}
+
+function dims(src) {
+  return { w: src.naturalWidth || src.width, h: src.naturalHeight || src.height };
+}
+
+function stepDown(src, targetW, targetH) {
+  let cur = src;
+  let { w, h } = dims(src);
+  while (w > targetW * 2 || h > targetH * 2) {
+    const nw = Math.max(Math.ceil(w / 2), targetW);
+    const nh = Math.max(Math.ceil(h / 2), targetH);
+    const next = makeCanvas(nw, nh);
+    const ctx  = next.getContext('2d');
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(cur, 0, 0, nw, nh);
+    cur = next; w = nw; h = nh;
+  }
+  const final = makeCanvas(targetW, targetH);
+  const fctx  = final.getContext('2d');
+  fctx.imageSmoothingEnabled = true; fctx.imageSmoothingQuality = 'high';
+  fctx.drawImage(cur, 0, 0, targetW, targetH);
+  return final;
+}
+
+function resizeCover(src, targetW, targetH) {
+  const { w: srcW, h: srcH } = dims(src);
+  const scale  = Math.max(targetW / srcW, targetH / srcH);
+  const cropW  = targetW / scale,  cropH  = targetH / scale;
+  const cropX  = (srcW - cropW) / 2, cropY = (srcH - cropH) / 2;
+  const cropped = makeCanvas(Math.round(cropW), Math.round(cropH));
+  const cctx   = cropped.getContext('2d');
+  cctx.imageSmoothingEnabled = true; cctx.imageSmoothingQuality = 'high';
+  cctx.drawImage(src, cropX, cropY, cropW, cropH, 0, 0, Math.round(cropW), Math.round(cropH));
+  return stepDown(cropped, targetW, targetH);
+}
+
+function drawCover(src, canvas) {
+  const { w: srcW, h: srcH } = dims(src);
+  const tw = canvas.width, th = canvas.height;
+  const scale = Math.max(tw / srcW, th / srcH);
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(src, (tw - srcW * scale) / 2, (th - srcH * scale) / 2, srcW * scale, srcH * scale);
+}
+
+function toBlob(canvas) {
+  return new Promise(res => canvas.toBlob(res, 'image/png'));
+}
+
+// ═══════════════════════════════════════════
+//  PREVIEWS
+// ═══════════════════════════════════════════
+function renderPreviews(img) {
+  // Source — show at 4640:1440 aspect
+  const srcWrap = document.getElementById('prev-src');
+  srcWrap.innerHTML = '';
+  const sw = srcWrap.clientWidth || 380;
+  const sh = Math.round(sw * 1440 / 4640);
+  const sc = makeCanvas(sw, sh);
+  drawCover(img, sc);
+  sc.style.cssText = 'width:100%;height:100%;display:block;';
+  srcWrap.appendChild(sc);
+
+  // Output — show at 1280:768 aspect (cover crop preview)
+  const outWrap = document.getElementById('prev-out');
+  outWrap.innerHTML = '';
+  const ow = outWrap.clientWidth || 380;
+  const oh = Math.round(ow * 768 / 1280);
+  const oc = resizeCover(img, ow, oh);
+  oc.style.cssText = 'width:100%;height:100%;display:block;';
+  outWrap.appendChild(oc);
+}
+
+// ═══════════════════════════════════════════
+//  FIX & EXPORT
+// ═══════════════════════════════════════════
+async function runFix() {
+  const btn = document.getElementById('fixBtn');
+  btn.disabled = true;
+  btn.classList.add('processing');
+  btn.innerHTML = `<span class="spin">◌</span> Processing…`;
+
+  try {
+    log('proc', '▶  Loading ZIP…');
+    const buf = await state.zipFile.arrayBuffer();
+    const zip = await JSZip.loadAsync(buf);
+
+    // Find appstore_background.png in the ZIP
+    const allFiles = Object.keys(zip.files);
+    const bgPath   = allFiles.find(f =>
+      f.includes('App Icon - App Store.imagestack') &&
+      f.includes('Back.imagestacklayer') &&
+      f.endsWith('appstore_background.png')
+    );
+
+    if (!bgPath) {
+      log('err', '✕  appstore_background.png not found in this ZIP.');
+      log('err', '   Make sure it was exported by the tvOS Asset Generator.');
+      return;
+    }
+
+    log('ok', `  ✓  Target path found: …/${bgPath.split('/').slice(-3).join('/')}`);
+
+    log('proc', `  ⟳  Cropping ${state.bgImg.naturalWidth}×${state.bgImg.naturalHeight} → 1280×768 (cover, multi-step)…`);
+    const newBgCanvas = resizeCover(state.bgImg, 1280, 768);
+    const newBgBlob   = await toBlob(newBgCanvas);
+
+    zip.file(bgPath, newBgBlob);
+    log('ok', '  ✓  appstore_background.png replaced — 1280×768, lossless PNG');
+
+    log('proc', '  ⟳  Packaging ZIP…');
+    const fixedBlob = await zip.generateAsync({
+      type: 'blob',
+      compression: 'DEFLATE',
+      compressionOptions: { level: 6 }
+    });
+
+    const url = URL.createObjectURL(fixedBlob);
+    const a   = document.createElement('a');
+    a.href = url;
+    a.download = state.zipName + '.zip';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+    log('ok', `✓  Downloaded: ${state.zipName}.zip (${(fixedBlob.size / 1024).toFixed(0)} KB)`);
+    log('ok', '    All other assets in the ZIP remain untouched.');
+
+  } catch (err) {
+    log('err', `✕  ${err.message}`);
+    console.error(err);
+  } finally {
+    btn.classList.remove('processing');
+    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+    </svg> Fix &amp; Export ZIP`;
+    updateBtn();
+  }
+}
+
+// ═══════════════════════════════════════════
+//  LOG
+// ═══════════════════════════════════════════
+function log(type, msg) {
+  const panel = document.getElementById('logPanel');
+  panel.classList.add('show');
+  const t   = new Date().toTimeString().slice(0, 8);
+  const row = document.createElement('div');
+  row.className = 'log-row ' + type;
+  row.innerHTML = `<span class="log-t">${t}</span><span class="log-m">${msg}</span>`;
+  panel.appendChild(row);
+  panel.scrollTop = panel.scrollHeight;
+}
+</script>
+</body>
+</html>

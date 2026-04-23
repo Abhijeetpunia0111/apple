@@ -1,0 +1,2179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>tvOS Asset Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Barlow:wght@400;500;600;700;800&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    :root {
+      --bg-900: #060709;
+      --bg-800: #0C0E14;
+      --bg-700: #11141C;
+      --bg-600: #181C28;
+      --bg-500: #1F2535;
+      --border-subtle: #222840;
+      --border-default: #2C3450;
+      --border-bright: #3A4868;
+      --text-100: #EDF1FF;
+      --text-200: #B2BFDA;
+      --text-300: #627090;
+      --text-400: #38455C;
+      --amber: #F59E0B;
+      --amber-hover: #FBBF24;
+      --amber-dim: rgba(245,158,11,0.12);
+      --amber-glow: rgba(245,158,11,0.25);
+      --blue: #4F8EF7;
+      --blue-dim: rgba(79,142,247,0.1);
+      --green: #2DD4BF;
+      --green-dim: rgba(45,212,191,0.12);
+      --red: #F56565;
+      --red-dim: rgba(245,101,101,0.12);
+      --yellow: #F6C90E;
+      --r: 8px;
+      --r-lg: 14px;
+      --font-mono: 'IBM Plex Mono', 'Menlo', monospace;
+      --font-ui: 'Barlow', sans-serif;
+      --font-display: 'Barlow Condensed', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-ui);
+      background: var(--bg-900);
+      color: var(--text-100);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Dot grid */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.028) 1px, transparent 1px);
+      background-size: 24px 24px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Ambient glow */
+    body::after {
+      content: '';
+      position: fixed;
+      top: -20%;
+      left: -10%;
+      width: 60%;
+      height: 60%;
+      background: radial-gradient(ellipse, rgba(79,142,247,0.04) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    * { position: relative; z-index: 1; }
+
+    /* ── HEADER ── */
+    header {
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(6,7,9,0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      position: sticky;
+      top: 0;
+      z-index: 200;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo-mark {
+      width: 32px;
+      height: 32px;
+      background: var(--amber);
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--bg-900);
+      letter-spacing: -0.5px;
+      flex-shrink: 0;
+    }
+
+    .logo-text {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-200);
+    }
+
+    .logo-sep {
+      width: 1px;
+      height: 18px;
+      background: var(--border-default);
+    }
+
+    .logo-version {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-400);
+      letter-spacing: 0.06em;
+      padding: 2px 7px;
+      border: 1px solid var(--border-subtle);
+      border-radius: 4px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      animation: livepulse 2.4s ease-in-out infinite;
+    }
+
+    @keyframes livepulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+
+    .header-right span {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-400);
+      letter-spacing: 0.06em;
+    }
+
+    /* ── MAIN ── */
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 52px 40px 100px;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      padding-bottom: 52px;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 52px;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 20px;
+    }
+
+    .hero-eyebrow::before {
+      content: '';
+      width: 24px;
+      height: 1px;
+      background: var(--amber);
+    }
+
+    .hero h1 {
+      font-family: var(--font-display);
+      font-size: 60px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      line-height: 1.0;
+      margin-bottom: 18px;
+      color: var(--text-100);
+    }
+
+    .hero h1 em {
+      font-style: normal;
+      color: var(--amber);
+    }
+
+    .hero-sub {
+      font-size: 16px;
+      font-weight: 400;
+      color: var(--text-300);
+      line-height: 1.65;
+      max-width: 580px;
+      margin-bottom: 28px;
+    }
+
+    .hero-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border: 1px solid var(--border-default);
+      border-radius: 100px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-300);
+      letter-spacing: 0.05em;
+    }
+
+    .tag::before {
+      content: '';
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--amber);
+      opacity: 0.6;
+    }
+
+    /* ── SECTION LABEL ── */
+    .section-hd {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .section-num {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--amber);
+      letter-spacing: 0.12em;
+      flex-shrink: 0;
+    }
+
+    .section-name {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-300);
+      flex-shrink: 0;
+    }
+
+    .section-rule {
+      flex: 1;
+      height: 1px;
+      background: var(--border-subtle);
+    }
+
+    /* ── UPLOAD GRID ── */
+    .upload-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin-bottom: 52px;
+    }
+
+    /* ── UPLOAD CARD ── */
+    .ucard {
+      background: var(--bg-700);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--r-lg);
+      overflow: hidden;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .ucard:hover { border-color: var(--border-default); }
+
+    .ucard.drag-over {
+      border-color: var(--amber);
+      box-shadow: 0 0 0 3px var(--amber-dim), inset 0 0 50px rgba(245,158,11,0.02);
+    }
+
+    .ucard.state-uploaded { border-color: var(--green); }
+    .ucard.state-warn { border-color: var(--yellow); }
+    .ucard.state-error { border-color: var(--red); }
+
+    .ucard-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 16px 18px 14px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .ucard-meta { flex: 1; min-width: 0; }
+
+    .ucard-index {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--amber);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .ucard-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-100);
+      margin-bottom: 2px;
+    }
+
+    .ucard-desc {
+      font-size: 11px;
+      color: var(--text-400);
+      line-height: 1.4;
+    }
+
+    .ucard-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--bg-500);
+      border: 1px solid var(--border-default);
+      margin-top: 3px;
+      flex-shrink: 0;
+      transition: all 0.3s;
+    }
+
+    .ucard.state-uploaded .ucard-indicator {
+      background: var(--green);
+      border-color: var(--green);
+      box-shadow: 0 0 8px rgba(45,212,191,0.5);
+    }
+
+    .ucard.state-warn .ucard-indicator { background: var(--yellow); border-color: var(--yellow); }
+    .ucard.state-error .ucard-indicator { background: var(--red); border-color: var(--red); }
+
+    /* Drop zone */
+    .drop-zone {
+      padding: 28px 20px;
+      cursor: pointer;
+      min-height: 170px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      transition: background 0.2s;
+      user-select: none;
+    }
+
+    .drop-zone:hover { background: rgba(255,255,255,0.012); }
+
+    .ucard.state-uploaded .drop-zone { display: none; }
+
+    input[type="file"] { display: none; }
+
+    .drop-icon-wrap {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      border: 1.5px dashed var(--border-bright);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .ucard.drag-over .drop-icon-wrap {
+      border-color: var(--amber);
+      background: var(--amber-dim);
+    }
+
+    .drop-icon-wrap svg {
+      width: 20px;
+      height: 20px;
+      stroke: var(--text-400);
+      transition: stroke 0.2s;
+    }
+
+    .ucard.drag-over .drop-icon-wrap svg { stroke: var(--amber); }
+
+    .drop-txt { text-align: center; }
+
+    .drop-txt-main {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-300);
+      margin-bottom: 3px;
+    }
+
+    .drop-txt-sub {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-400);
+    }
+
+    .dim-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      background: var(--bg-500);
+      border: 1px solid var(--border-default);
+      border-radius: 100px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-300);
+      letter-spacing: 0.03em;
+    }
+
+    /* Preview state */
+    .ucard-preview {
+      display: none;
+      position: relative;
+    }
+
+    .ucard.state-uploaded .ucard-preview,
+    .ucard.state-warn .ucard-preview { display: block; }
+
+    .preview-img {
+      width: 100%;
+      height: 168px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .preview-img.transparent-bg {
+      background:
+        linear-gradient(45deg, #1a1a2e 25%, transparent 25%),
+        linear-gradient(-45deg, #1a1a2e 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #1a1a2e 75%),
+        linear-gradient(-45deg, transparent 75%, #1a1a2e 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+      background-color: #0f0f1a;
+      object-fit: contain;
+    }
+
+    .preview-footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 10px 16px;
+      background: linear-gradient(transparent, rgba(0,0,0,0.82));
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+
+    .preview-dims {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: rgba(255,255,255,0.65);
+    }
+
+    .preview-replace {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--amber);
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    /* Validation bar */
+    .val-bar {
+      display: none;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 18px;
+      border-top: 1px solid var(--border-subtle);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      line-height: 1.4;
+    }
+
+    .val-bar.show { display: flex; }
+    .val-bar.ok { color: var(--green); background: var(--green-dim); }
+    .val-bar.warn { color: var(--yellow); background: rgba(246,201,14,0.08); }
+    .val-bar.err { color: var(--red); background: var(--red-dim); }
+
+    /* ── OUTPUT PREVIEWS ── */
+    .output-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 52px;
+    }
+
+    .ocard {
+      background: var(--bg-700);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--r-lg);
+      overflow: hidden;
+    }
+
+    .ocard-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .ocard-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-200);
+    }
+
+    .ocard-size {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-400);
+    }
+
+    .ocard-body {
+      height: 132px;
+      background: var(--bg-900);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .ocard-body canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .ocard-empty {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-400);
+    }
+
+    .ocard-layers {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .layers-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .layer-item {
+      flex: 1;
+    }
+
+    .layer-thumb {
+      height: 36px;
+      background: var(--bg-900);
+      border: 1px solid var(--border-subtle);
+      border-radius: 5px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .layer-thumb canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .layer-thumb.transp-bg {
+      background:
+        linear-gradient(45deg, #14142a 25%, transparent 25%),
+        linear-gradient(-45deg, #14142a 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #14142a 75%),
+        linear-gradient(-45deg, transparent 75%, #14142a 75%);
+      background-size: 8px 8px;
+      background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+      background-color: #0a0a1a;
+    }
+
+    .layer-lbl {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-400);
+      text-align: center;
+      margin-top: 4px;
+      letter-spacing: 0.06em;
+    }
+
+    /* ── FOLDER TREE ── */
+    .tree-wrap {
+      background: var(--bg-800);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--r-lg);
+      padding: 24px 28px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 2.0;
+      margin-bottom: 52px;
+      overflow-x: auto;
+    }
+
+    .t-dir { color: var(--blue); }
+    .t-json { color: var(--amber); }
+    .t-file { color: var(--text-400); }
+    .t-file.ready { color: var(--green); }
+    .t-pipe { color: var(--border-bright); }
+    .t-root { color: var(--text-200); font-weight: 600; }
+
+    .tree-row { white-space: nowrap; }
+
+    /* ── EXPORT PANEL ── */
+    .export-panel {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 28px;
+      padding: 28px 32px;
+      background: var(--bg-700);
+      border: 1px solid var(--border-default);
+      border-radius: var(--r-lg);
+      margin-bottom: 20px;
+    }
+
+    .export-info { flex: 1; }
+
+    .export-info h3 {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-100);
+      margin-bottom: 5px;
+    }
+
+    .export-info p {
+      font-size: 13px;
+      color: var(--text-300);
+      line-height: 1.5;
+    }
+
+    .export-info code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--amber);
+      background: var(--amber-dim);
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+
+    .readiness {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .rcheck {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-400);
+      letter-spacing: 0.04em;
+      transition: color 0.3s;
+    }
+
+    .rcheck-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--border-bright);
+      transition: all 0.3s;
+      flex-shrink: 0;
+    }
+
+    .rcheck.ready { color: var(--text-200); }
+
+    .rcheck.ready .rcheck-dot {
+      background: var(--green);
+      box-shadow: 0 0 6px rgba(45,212,191,0.6);
+    }
+
+    /* Export button */
+    .export-btn {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 15px 30px;
+      background: var(--amber);
+      color: var(--bg-900);
+      border: none;
+      border-radius: var(--r);
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .export-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .export-btn:hover:not(:disabled) {
+      background: var(--amber-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 32px rgba(245,158,11,0.35);
+    }
+
+    .export-btn:active:not(:disabled) { transform: translateY(0); box-shadow: none; }
+
+    .export-btn:disabled {
+      background: var(--bg-500);
+      color: var(--text-400);
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .export-btn svg { width: 18px; height: 18px; }
+
+    .export-btn.processing {
+      background: var(--blue);
+      cursor: wait;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin 0.9s linear infinite; }
+
+    /* ── LOG PANEL ── */
+    .log-panel {
+      background: var(--bg-800);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--r);
+      padding: 14px 18px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.9;
+      max-height: 220px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .log-panel.show { display: block; }
+
+    .log-row { display: flex; gap: 14px; }
+    .log-t { color: var(--text-400); flex-shrink: 0; }
+    .log-m { color: var(--text-300); }
+    .log-row.ok .log-m { color: var(--green); }
+    .log-row.err .log-m { color: var(--red); }
+    .log-row.proc .log-m { color: var(--amber); }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
+
+    /* ── FRONT LAYER EDITOR ── */
+    .eye-btn {
+      display: flex; align-items: center; gap: 5px;
+      padding: 4px 10px;
+      background: var(--bg-500);
+      border: 1px solid var(--border-default);
+      border-radius: 6px;
+      color: var(--text-300);
+      font-family: var(--font-mono); font-size: 10px;
+      cursor: pointer; transition: all 0.18s;
+    }
+    .eye-btn:hover { background: var(--amber-dim); color: var(--amber); border-color: var(--amber); }
+    .eye-btn svg { width: 13px; height: 13px; }
+
+    .editor-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.88);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 600;
+      display: none;
+      align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .editor-overlay.open { display: flex; }
+
+    .editor-panel {
+      background: var(--bg-700);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      width: 100%; max-width: 880px;
+      overflow: hidden;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+    }
+
+    .editor-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 22px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .editor-head-left { display: flex; align-items: center; gap: 12px; }
+    .editor-head h3 { font-family: var(--font-display); font-size: 18px; font-weight: 700; }
+    .editor-badge {
+      font-family: var(--font-mono); font-size: 10px;
+      padding: 2px 8px; border-radius: 4px;
+      background: var(--amber-dim); color: var(--amber);
+      border: 1px solid rgba(245,158,11,0.3);
+    }
+    .editor-close {
+      width: 30px; height: 30px; border-radius: 7px;
+      background: var(--bg-500); border: 1px solid var(--border-default);
+      color: var(--text-200); font-size: 18px; line-height: 1;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .editor-close:hover { background: var(--red-dim); color: var(--red); border-color: var(--red); }
+
+    .editor-preview {
+      background: var(--bg-900);
+      padding: 28px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .editor-canvas-bg {
+      background:
+        linear-gradient(45deg, #151520 25%, transparent 25%),
+        linear-gradient(-45deg, #151520 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #151520 75%),
+        linear-gradient(-45deg, transparent 75%, #151520 75%);
+      background-size: 14px 14px;
+      background-position: 0 0, 0 7px, 7px -7px, -7px 0;
+      background-color: #0c0c18;
+      border-radius: 10px; overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    }
+    #editorCanvas { display: block; max-width: 100%; height: auto; }
+
+    .editor-controls {
+      padding: 20px 22px;
+      border-top: 1px solid var(--border-subtle);
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 18px 28px;
+    }
+    .ctrl-grp { display: flex; flex-direction: column; gap: 10px; }
+    .ctrl-top {
+      display: flex; align-items: center; justify-content: space-between;
+      font-family: var(--font-mono); font-size: 10px;
+      color: var(--text-400); letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .ctrl-val { color: var(--amber); font-weight: 600; }
+    input[type=range].ctrl-slider {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 3px; border-radius: 2px;
+      background: var(--border-bright); outline: none; cursor: pointer;
+    }
+    input[type=range].ctrl-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: var(--amber); cursor: pointer;
+      box-shadow: 0 0 8px rgba(245,158,11,0.45);
+      transition: transform 0.1s;
+    }
+    input[type=range].ctrl-slider::-webkit-slider-thumb:active { transform: scale(1.2); }
+    input[type=range].ctrl-slider::-moz-range-thumb {
+      width: 16px; height: 16px; border-radius: 50%;
+      background: var(--amber); cursor: pointer; border: none;
+    }
+
+    .editor-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 22px 20px;
+    }
+    .editor-reset {
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--text-300); background: none;
+      border: 1px solid var(--border-default);
+      border-radius: 6px; padding: 7px 16px; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .editor-reset:hover { color: var(--text-100); border-color: var(--border-bright); }
+    .editor-done {
+      font-family: var(--font-display); font-size: 14px; font-weight: 700;
+      color: var(--bg-900); background: var(--amber);
+      border: none; border-radius: 8px; padding: 10px 28px; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .editor-done:hover { background: var(--amber-hover); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 820px) {
+      header { padding: 0 20px; }
+      main { padding: 32px 20px 80px; }
+      .upload-grid, .output-grid { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 38px; }
+      .export-panel { flex-direction: column; align-items: stretch; }
+      .export-btn { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ──────────────────────────── HEADER ──────────────────────────── -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">tv</div>
+    <span class="logo-text">Asset Generator</span>
+    <div class="logo-sep"></div>
+    <span class="logo-version">tvOS 17+</span>
+  </div>
+  <div class="header-right">
+    <div class="live-dot"></div>
+    <span>Browser-only · No upload</span>
+  </div>
+</header>
+
+<!-- ──────────────────────────── MAIN ──────────────────────────── -->
+<main>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-eyebrow">Apple tvOS Xcode Asset Pipeline</div>
+    <h1>Generate <em>tvOS Assets</em><br>Ready for Xcode</h1>
+    <p class="hero-sub">Upload your design files below. This tool resizes, crops, and packages everything into a correctly-structured <code style="font-family:var(--font-mono);font-size:13px;color:var(--amber);">.xcassets</code> folder with valid Contents.json files — unzip and drop straight into Xcode.</p>
+    <div class="hero-tags">
+      <span class="tag">Layered Imagestack Format</span>
+      <span class="tag">imagestacklayer Subfolders</span>
+      <span class="tag">Correct Contents.json</span>
+      <span class="tag">Top Shelf + Wide</span>
+      <span class="tag">JSZip Export</span>
+      <span class="tag">No Backend</span>
+    </div>
+  </div>
+
+  <!-- ── 01 UPLOAD ── -->
+  <div class="section-hd">
+    <span class="section-num">01</span>
+    <span class="section-name">Upload Required Assets</span>
+    <div class="section-rule"></div>
+  </div>
+
+  <div class="upload-grid" id="uploadGrid">
+
+    <!-- Card 1: Transparent Logo -->
+    <div class="ucard" id="ucard-logo-transparent" data-type="logo-transparent">
+      <div class="ucard-head">
+        <div class="ucard-meta">
+          <div class="ucard-index">Asset 01 · Home Icon Front + App Store Front</div>
+          <div class="ucard-title">App Logo (Transparent)</div>
+          <div class="ucard-desc">16:9 PNG · Logo only, transparent background</div>
+        </div>
+        <div class="ucard-indicator"></div>
+      </div>
+      <div class="drop-zone" id="dz-logo-transparent">
+        <input type="file" id="fi-logo-transparent" accept="image/png,image/*" onchange="handleFile(event,'logo-transparent')">
+        <div class="drop-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+          </svg>
+        </div>
+        <div class="drop-txt">
+          <div class="drop-txt-main">Drop PNG or click to upload</div>
+          <div class="drop-txt-sub">Transparent background required</div>
+        </div>
+        <div class="dim-pill">16:9 ratio · PNG</div>
+      </div>
+      <div class="ucard-preview" id="prev-logo-transparent">
+        <img class="preview-img transparent-bg" id="pimg-logo-transparent" alt="">
+        <div class="preview-footer">
+          <span class="preview-dims" id="pdims-logo-transparent"></span>
+          <span class="preview-replace" onclick="document.getElementById('fi-logo-transparent').click()">Replace ↑</span>
+        </div>
+      </div>
+      <div class="val-bar" id="val-logo-transparent"></div>
+    </div>
+
+    <!-- Card 2: Logo with BG → App Store Back -->
+    <div class="ucard" id="ucard-logo-with-bg" data-type="logo-with-bg">
+      <div class="ucard-head">
+        <div class="ucard-meta">
+          <div class="ucard-index">Asset 02 · Top Shelf + App Store Back</div>
+          <div class="ucard-title">Logo with Background</div>
+          <div class="ucard-desc">16:9 PNG · Top Shelf (1920×720) + App Store back (1280×768)</div>
+        </div>
+        <div class="ucard-indicator"></div>
+      </div>
+      <div class="drop-zone" id="dz-logo-with-bg">
+        <input type="file" id="fi-logo-with-bg" accept="image/png,image/*" onchange="handleFile(event,'logo-with-bg')">
+        <div class="drop-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+          </svg>
+        </div>
+        <div class="drop-txt">
+          <div class="drop-txt-main">Drop PNG or click to upload</div>
+          <div class="drop-txt-sub">Falls back to Background Image if omitted</div>
+        </div>
+        <div class="dim-pill">16:9 ratio · PNG</div>
+      </div>
+      <div class="ucard-preview" id="prev-logo-with-bg">
+        <img class="preview-img" id="pimg-logo-with-bg" alt="">
+        <div class="preview-footer">
+          <span class="preview-dims" id="pdims-logo-with-bg"></span>
+          <span class="preview-replace" onclick="document.getElementById('fi-logo-with-bg').click()">Replace ↑</span>
+        </div>
+      </div>
+      <div class="val-bar" id="val-logo-with-bg"></div>
+    </div>
+
+    <!-- Card 3: Background -->
+    <div class="ucard" id="ucard-background" data-type="background">
+      <div class="ucard-head">
+        <div class="ucard-meta">
+          <div class="ucard-index">Asset 03 · Home Icon Back + Top Shelf + App Store Back</div>
+          <div class="ucard-title">Background Image</div>
+          <div class="ucard-desc">Back layer (400×240 1x/2x) · Top Shelf · App Store back</div>
+        </div>
+        <div class="ucard-indicator"></div>
+      </div>
+      <div class="drop-zone" id="dz-background">
+        <input type="file" id="fi-background" accept="image/png,image/*" onchange="handleFile(event,'background')">
+        <div class="drop-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+          </svg>
+        </div>
+        <div class="drop-txt">
+          <div class="drop-txt-main">Drop PNG or click to upload</div>
+          <div class="drop-txt-sub">Recommended: 4640 × 1440 px</div>
+        </div>
+        <div class="dim-pill">4640 × 1440 · PNG</div>
+      </div>
+      <div class="ucard-preview" id="prev-background">
+        <img class="preview-img" id="pimg-background" alt="">
+        <div class="preview-footer">
+          <span class="preview-dims" id="pdims-background"></span>
+          <span class="preview-replace" onclick="document.getElementById('fi-background').click()">Replace ↑</span>
+        </div>
+      </div>
+      <div class="val-bar" id="val-background"></div>
+    </div>
+
+    <!-- Card 4: Launch Screen / Splash -->
+    <div class="ucard" id="ucard-splash" data-type="splash">
+      <div class="ucard-head">
+        <div class="ucard-meta">
+          <div class="ucard-index">Asset 05 · Launch Screen Imageset · 1x / 2x / 3x (same image for all scales)</div>
+          <div class="ucard-title">Launch Screen / Splash Image</div>
+          <div class="ucard-desc">Used for <code style="font-family:var(--font-mono);font-size:10px;color:var(--amber);">launchscreen.imageset</code> — same PNG is referenced as 1x, 2x and 3x</div>
+        </div>
+        <div class="ucard-indicator"></div>
+      </div>
+      <div class="drop-zone" id="dz-splash">
+        <input type="file" id="fi-splash" accept="image/png,image/*" onchange="handleFile(event,'splash')">
+        <div class="drop-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+          </svg>
+        </div>
+        <div class="drop-txt">
+          <div class="drop-txt-main">Drop PNG or click to upload</div>
+          <div class="drop-txt-sub">Falls back to Background Image if omitted · Optional</div>
+        </div>
+        <div class="dim-pill">Any size · PNG · Optional</div>
+      </div>
+      <div class="ucard-preview" id="prev-splash">
+        <img class="preview-img" id="pimg-splash" alt="" style="height:100px; object-fit:cover;">
+        <div class="preview-footer">
+          <span class="preview-dims" id="pdims-splash"></span>
+          <span class="preview-replace" onclick="document.getElementById('fi-splash').click()">Replace ↑</span>
+        </div>
+      </div>
+      <div class="val-bar" id="val-splash"></div>
+    </div>
+
+  </div><!-- /upload-grid -->
+
+  <!-- ── 02 OUTPUT PREVIEW ── -->
+  <div class="section-hd">
+    <span class="section-num">02</span>
+    <span class="section-name">Output Preview</span>
+    <div class="section-rule"></div>
+  </div>
+
+  <div class="output-grid">
+
+    <!-- Icon Layers -->
+    <div class="ocard">
+      <div class="ocard-head">
+        <span class="ocard-title">App Icon Layers (Composite)</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="ocard-size">400 × 240 px / layer</span>
+          <button class="eye-btn" onclick="openFrontEditor()" title="Edit front layer position & size">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            Edit Front
+          </button>
+        </div>
+      </div>
+      <div class="ocard-body" id="opreview-icon">
+        <span class="ocard-empty">Upload assets to preview</span>
+      </div>
+      <div class="ocard-layers">
+        <div class="layers-row">
+          <div class="layer-item">
+            <div class="layer-thumb" id="lthumb-back"></div>
+            <div class="layer-lbl">BACK · background.png</div>
+          </div>
+          <div class="layer-item">
+            <div class="layer-thumb transp-bg" id="lthumb-front"></div>
+            <div class="layer-lbl">FRONT · front.png</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Shelf -->
+    <div class="ocard">
+      <div class="ocard-head">
+        <span class="ocard-title">Top Shelf Image</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="ocard-size">1920 × 720 px</span>
+          <button class="eye-btn" onclick="openTopShelfEditor()" title="Edit crop position & scale for both Top Shelf images">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/>
+            </svg>
+            Edit Crop
+          </button>
+        </div>
+      </div>
+      <div class="ocard-body" id="opreview-topshelf">
+        <span class="ocard-empty">Upload background image</span>
+      </div>
+    </div>
+
+    <!-- Top Shelf Wide -->
+    <div class="ocard">
+      <div class="ocard-head">
+        <span class="ocard-title">Top Shelf Wide</span>
+        <span class="ocard-size">2320 × 720 px</span>
+      </div>
+      <div class="ocard-body" id="opreview-topshelf-wide">
+        <span class="ocard-empty">Upload background image</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── 03 OUTPUT STRUCTURE ── -->
+  <div class="section-hd">
+    <span class="section-num">03</span>
+    <span class="section-name">Output Structure (Xcode-Ready)</span>
+    <div class="section-rule"></div>
+  </div>
+
+  <div class="tree-wrap">
+    <div class="tree-row"><span class="t-root">Images.xcassets</span><span class="t-dir">/</span></div>
+    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-json">Contents.json</span></div>
+    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-dir">Brand Assets.brandassets</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span><span class="t-pipe"> ← size fields: 1280x768 + 400x240</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;├── </span><span class="t-dir">App Icon - App Store.imagestack</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span><span class="t-pipe"> ← layers: [Front, Back]</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── </span><span class="t-dir">Front.imagestacklayer</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── </span><span class="t-dir">Content.imageset</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── </span><span class="t-file" id="tr-as-front">appstore_front.png</span><span class="t-pipe"> ← 1280×768</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── </span><span class="t-dir">Back.imagestacklayer</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── </span><span class="t-dir">Content.imageset</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── </span><span class="t-file" id="tr-as-back">appstore_background.png</span><span class="t-pipe"> ← 1280×768</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;├── </span><span class="t-dir">App Icon.imagestack</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span><span class="t-pipe"> ← layers: [Front, Back]</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── </span><span class="t-dir">Front.imagestacklayer</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── </span><span class="t-dir">Content.imageset</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-file" id="tr-front">front.png</span><span class="t-pipe"> ← 400×240 @1x</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── </span><span class="t-file" id="tr-front-2x">front_2x.png</span><span class="t-pipe"> ← 800×480 @2x</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── </span><span class="t-dir">Back.imagestacklayer</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── </span><span class="t-dir">Content.imageset</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-file" id="tr-back">background.png</span><span class="t-pipe"> ← 400×240 @1x</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── </span><span class="t-file" id="tr-back-2x">background_2x.png</span><span class="t-pipe"> ← 800×480 @2x</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;├── </span><span class="t-dir">Top Shelf Image.imageset</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── </span><span class="t-file" id="tr-ts">topshelf.png</span><span class="t-pipe"> ← 1920×720 @1x</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── </span><span class="t-file" id="tr-ts-2x">topshelf_2x.png</span><span class="t-pipe"> ← 3840×1440 @2x</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;└── </span><span class="t-dir">Top Shelf Image Wide.imageset</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-file" id="tr-tsw">topshelf_wide.png</span><span class="t-pipe"> ← 2320×720 @1x</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── </span><span class="t-file" id="tr-tsw-2x">topshelf_wide_2x.png</span><span class="t-pipe"> ← 4640×1440 @2x</span></div>
+    <div class="tree-row"><span class="t-pipe">└── </span><span class="t-dir">launchscreen.imageset</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span><span class="t-pipe"> ← 1x / 2x / 3x (universal)</span></div>
+    <div class="tree-row"><span class="t-pipe">&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-file" id="tr-splash">splash.png</span><span class="t-pipe"> ← @1x</span></div>
+    <div class="tree-row"><span class="t-pipe">&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-file" id="tr-splash-2x">splash_2x.png</span><span class="t-pipe"> ← @2x (same image)</span></div>
+    <div class="tree-row"><span class="t-pipe">&nbsp;&nbsp;&nbsp;&nbsp;└── </span><span class="t-file" id="tr-splash-3x">splash_3x.png</span><span class="t-pipe"> ← @3x (same image)</span></div>
+  </div>
+
+  <!-- ── 04 EXPORT ── -->
+  <div class="section-hd">
+    <span class="section-num">04</span>
+    <span class="section-name">Export</span>
+    <div class="section-rule"></div>
+  </div>
+
+  <div class="export-panel">
+    <div class="export-info">
+      <h3>Export tvOS Asset Folder</h3>
+      <div style="display:flex;align-items:center;gap:8px;margin:12px 0 6px;">
+        <input id="assetName" type="text" placeholder="Images" value="Images"
+          style="font-family:var(--font-mono);font-size:13px;background:var(--bg-600);border:1px solid var(--border-default);border-radius:6px;color:var(--text-100);padding:7px 12px;width:180px;outline:none;"
+          oninput="updateFilenamePreview()" onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor='var(--border-default)'">
+        <span style="font-family:var(--font-mono);font-size:13px;color:var(--text-300);">.xcassets.zip</span>
+      </div>
+      <p style="font-size:12px;color:var(--text-400);">Will download as <code id="filenamePreview" style="font-family:var(--font-mono);font-size:11px;color:var(--amber);">Images.xcassets.zip</code> — unzip and drag into Xcode.</p>
+      <div class="readiness">
+        <div class="rcheck" id="rc-logo-transparent">
+          <div class="rcheck-dot"></div>
+          <span>Transparent Logo ✱</span>
+        </div>
+        <div class="rcheck" id="rc-background">
+          <div class="rcheck-dot"></div>
+          <span>Background Image ✱</span>
+        </div>
+        <div class="rcheck" id="rc-logo-with-bg">
+          <div class="rcheck-dot"></div>
+          <span>Logo with BG</span>
+        </div>
+        <div class="rcheck" id="rc-splash">
+          <div class="rcheck-dot"></div>
+          <span>Splash Screen</span>
+        </div>
+      </div>
+      <p style="font-family:var(--font-mono);font-size:10px;color:var(--text-400);margin-top:10px;">✱ required to enable export</p>
+    </div>
+    <button class="export-btn" id="exportBtn" onclick="runExport()" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+      </svg>
+      Export Asset Folder
+    </button>
+  </div>
+
+  <div class="log-panel" id="logPanel"></div>
+
+</main>
+
+<!-- ──────────────────────────── SCRIPT ──────────────────────────── -->
+<!-- ── FRONT LAYER EDITOR MODAL ── -->
+<div class="editor-overlay" id="frontEditorOverlay">
+  <div class="editor-panel">
+    <div class="editor-head">
+      <div class="editor-head-left">
+        <h3>Front Layer Editor</h3>
+        <span class="editor-badge">front.png · 400×240</span>
+      </div>
+      <button class="editor-close" onclick="closeFrontEditor()">✕</button>
+    </div>
+
+    <div class="editor-preview">
+      <div class="editor-canvas-bg">
+        <canvas id="editorCanvas" width="800" height="480"></canvas>
+      </div>
+    </div>
+
+    <div class="editor-controls">
+      <!-- Scale -->
+      <div class="ctrl-grp">
+        <div class="ctrl-top">
+          <span>Scale / Size</span>
+          <span class="ctrl-val" id="lbl-scale">100%</span>
+        </div>
+        <input type="range" class="ctrl-slider" id="sl-scale"
+          min="20" max="200" step="1" value="100"
+          oninput="onSlider()">
+      </div>
+      <!-- X position -->
+      <div class="ctrl-grp">
+        <div class="ctrl-top">
+          <span>Horizontal (Left / Right)</span>
+          <span class="ctrl-val" id="lbl-x">0 px</span>
+        </div>
+        <input type="range" class="ctrl-slider" id="sl-x"
+          min="-200" max="200" step="1" value="0"
+          oninput="onSlider()">
+      </div>
+      <!-- Y position -->
+      <div class="ctrl-grp">
+        <div class="ctrl-top">
+          <span>Vertical (Top / Bottom)</span>
+          <span class="ctrl-val" id="lbl-y">0 px</span>
+        </div>
+        <input type="range" class="ctrl-slider" id="sl-y"
+          min="-120" max="120" step="1" value="0"
+          oninput="onSlider()">
+      </div>
+    </div>
+
+    <div class="editor-footer">
+      <button class="editor-reset" onclick="resetFrontEditor()">↺ Reset to default</button>
+      <button class="editor-done" onclick="closeFrontEditor()">Done — Apply to Export</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOP SHELF EDITOR MODAL ── -->
+<div class="editor-overlay" id="tsEditorOverlay">
+  <div class="editor-panel" style="max-width:960px;">
+    <div class="editor-head">
+      <div class="editor-head-left">
+        <h3>Top Shelf Crop Editor</h3>
+        <span class="editor-badge">Applies to both Top Shelf + Top Shelf Wide</span>
+      </div>
+      <button class="editor-close" onclick="closeTopShelfEditor()">✕</button>
+    </div>
+
+    <div class="editor-preview">
+      <div class="editor-canvas-bg">
+        <canvas id="tsEditorCanvas" width="912" height="342" style="display:block;max-width:100%;height:auto;"></canvas>
+      </div>
+    </div>
+
+    <div class="editor-controls">
+      <div class="ctrl-grp">
+        <div class="ctrl-top"><span>Scale / Zoom</span><span class="ctrl-val" id="ts-lbl-scale">100%</span></div>
+        <input type="range" class="ctrl-slider" id="ts-sl-scale" min="50" max="200" step="1" value="100" oninput="onTsSlider()">
+      </div>
+      <div class="ctrl-grp">
+        <div class="ctrl-top"><span>Horizontal (Left / Right)</span><span class="ctrl-val" id="ts-lbl-x">0 px</span></div>
+        <input type="range" class="ctrl-slider" id="ts-sl-x" min="-500" max="500" step="1" value="0" oninput="onTsSlider()">
+      </div>
+      <div class="ctrl-grp">
+        <div class="ctrl-top"><span>Vertical (Top / Bottom)</span><span class="ctrl-val" id="ts-lbl-y">0 px</span></div>
+        <input type="range" class="ctrl-slider" id="ts-sl-y" min="-150" max="150" step="1" value="0" oninput="onTsSlider()">
+      </div>
+    </div>
+
+    <div class="editor-footer">
+      <button class="editor-reset" onclick="resetTopShelfEditor()">↺ Reset to default</button>
+      <button class="editor-done" onclick="closeTopShelfEditor()">Done — Apply to Export</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+const state = {
+  images: {
+    'logo-transparent': null,
+    'logo-with-bg':     null,
+    'background':       null,
+    'splash':           null
+  },
+  frontSettings:    { scale: 100, offsetX: 0, offsetY: 0 },
+  topShelfSettings: { scale: 100, offsetX: 0, offsetY: 0 }
+};
+
+const SPECS = {
+  'logo-transparent': { ratioW: 16, ratioH: 9, tolerance: 0.15 },
+  'logo-with-bg':     { ratioW: 16, ratioH: 9, tolerance: 0.15 },
+  'background':       { exactW: 4640, exactH: 1440, tolerance: 0.05 },
+  'splash':           { any: true }
+};
+
+// Tree node IDs lit up when each asset is uploaded
+const TREE_IDS = {
+  'logo-transparent': ['tr-front','tr-front-2x','tr-as-front'],
+  'logo-with-bg':     ['tr-as-back'],
+  'background':       ['tr-back','tr-back-2x','tr-ts','tr-ts-2x','tr-tsw','tr-tsw-2x','tr-as-back'],
+  'splash':           ['tr-splash','tr-splash-2x','tr-splash-3x']
+};
+
+// ═══════════════════════════════════════════
+//  INIT — Drag & Drop
+// ═══════════════════════════════════════════
+document.querySelectorAll('.drop-zone').forEach(dz => {
+  const card = dz.closest('.ucard');
+  const type = card.dataset.type;
+
+  dz.addEventListener('click', () => {
+    document.getElementById('fi-' + type).click();
+  });
+
+  dz.addEventListener('dragover', e => {
+    e.preventDefault();
+    card.classList.add('drag-over');
+  });
+  dz.addEventListener('dragleave', () => card.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    card.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f) ingestFile(f, type);
+  });
+});
+
+// ═══════════════════════════════════════════
+//  FILE HANDLING
+// ═══════════════════════════════════════════
+function handleFile(evt, type) {
+  const f = evt.target.files[0];
+  if (f) ingestFile(f, type);
+}
+
+function ingestFile(file, type) {
+  if (!file.type.startsWith('image/')) {
+    setValidation(type, 'err', '✕  Not an image file.');
+    return;
+  }
+  loadImg(file).then(img => {
+    state.images[type] = img;
+    showPreview(type, img);
+    const vResult = validate(type, img);
+    setCardState(type, vResult.pass ? 'state-uploaded' : 'state-warn');
+    setValidation(type, vResult.level, vResult.msg);
+    updateReadiness();
+    updateOutputPreviews();
+    updateTree(type);
+    log('ok', `Loaded ${label(type)}: ${img.naturalWidth}×${img.naturalHeight}`);
+  }).catch(() => {
+    setValidation(type, 'err', '✕  Failed to read image.');
+    log('err', `Failed to load ${label(type)}`);
+  });
+}
+
+function loadImg(file) {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = e => {
+      const img = new Image();
+      img.onload = () => res(img);
+      img.onerror = rej;
+      img.src = e.target.result;
+    };
+    fr.onerror = rej;
+    fr.readAsDataURL(file);
+  });
+}
+
+// ═══════════════════════════════════════════
+//  VALIDATION
+// ═══════════════════════════════════════════
+function validate(type, img) {
+  const w = img.naturalWidth, h = img.naturalHeight;
+  const spec = SPECS[type];
+
+  if (spec.exactW && spec.exactH) {
+    const offW = Math.abs(w - spec.exactW) / spec.exactW;
+    const offH = Math.abs(h - spec.exactH) / spec.exactH;
+    if (offW < spec.tolerance && offH < spec.tolerance) {
+      return { pass: true, level: 'ok', msg: `✓  ${w}×${h} — dimensions correct` };
+    }
+    return {
+      pass: false, level: 'warn',
+      msg: `⚠  Expected ${spec.exactW}×${spec.exactH}, got ${w}×${h}. Will be cover-cropped.`
+    };
+  }
+
+  if (spec.ratioW && spec.ratioH) {
+    const expectedRatio = spec.ratioW / spec.ratioH;
+    const actualRatio = w / h;
+    if (Math.abs(actualRatio - expectedRatio) <= spec.tolerance) {
+      return { pass: true, level: 'ok', msg: `✓  ${w}×${h} — aspect ratio correct` };
+    }
+    const pct = ((actualRatio / expectedRatio - 1) * 100).toFixed(1);
+    return {
+      pass: false, level: 'warn',
+      msg: `⚠  Expected 16:9 ratio, got ${actualRatio.toFixed(2)}:1 (off by ${pct}%). Logo may crop.`
+    };
+  }
+
+  if (spec.any) {
+    return { pass: true, level: 'ok', msg: `✓  ${w}×${h} — will be used as-is for all 3 scales` };
+  }
+
+  return { pass: true, level: 'ok', msg: `✓  ${w}×${h}` };
+}
+
+// ═══════════════════════════════════════════
+//  UI UPDATES
+// ═══════════════════════════════════════════
+function showPreview(type, img) {
+  document.getElementById('pimg-' + type).src = img.src;
+  document.getElementById('pdims-' + type).textContent = `${img.naturalWidth} × ${img.naturalHeight}`;
+}
+
+function setCardState(type, stateClass) {
+  const card = document.getElementById('ucard-' + type);
+  card.classList.remove('state-uploaded', 'state-warn', 'state-error');
+  card.classList.add(stateClass);
+}
+
+function setValidation(type, level, msg) {
+  const el = document.getElementById('val-' + type);
+  el.className = 'val-bar show ' + level;
+  el.textContent = msg;
+}
+
+function updateReadiness() {
+  const all = ['logo-transparent', 'logo-with-bg', 'background', 'splash'];
+  const required = ['logo-transparent', 'background'];
+
+  all.forEach(t => {
+    const rc = document.getElementById('rc-' + t);
+    if (!rc) return;
+    if (state.images[t]) rc.classList.add('ready');
+    else rc.classList.remove('ready');
+  });
+
+  const minReady = required.every(t => state.images[t]);
+  document.getElementById('exportBtn').disabled = !minReady;
+}
+
+function updateTree(type) {
+  const ids = TREE_IDS[type];
+  if (!ids) return;
+  (Array.isArray(ids) ? ids : [ids]).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('ready');
+  });
+}
+
+function label(type) {
+  return {
+    'logo-transparent': 'Transparent Logo',
+    'logo-with-bg':     'Logo with BG',
+    'background':       'Background Image',
+    'splash':           'Splash Screen'
+  }[type] || type;
+}
+
+// ═══════════════════════════════════════════
+//  CANVAS UTILITIES
+// ═══════════════════════════════════════════
+function makeCanvas(w, h) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  return c;
+}
+
+function dims(img) {
+  if (img instanceof HTMLCanvasElement) return { w: img.width, h: img.height };
+  return { w: img.naturalWidth || img.width, h: img.naturalHeight || img.height };
+}
+
+/**
+ * High-quality multi-step downscaler.
+ * Halves iteratively (each step ≤ 2× reduction) then does a final precise pass.
+ * Produces significantly sharper results than a single drawImage for large downscales.
+ */
+function stepDown(src, targetW, targetH) {
+  let cur = src;
+  let { w, h } = dims(src);
+
+  // Keep halving while either dimension is more than 2× the target
+  while (w > targetW * 2 || h > targetH * 2) {
+    const nw = Math.max(Math.ceil(w / 2), targetW);
+    const nh = Math.max(Math.ceil(h / 2), targetH);
+    const next = makeCanvas(nw, nh);
+    const ctx = next.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(cur, 0, 0, nw, nh);
+    cur = next; w = nw; h = nh;
+  }
+
+  // Always draw to a fresh canvas — guarantees a canvas is returned even when
+  // dimensions already match (Image elements have no .toBlob method).
+  const final = makeCanvas(targetW, targetH);
+  const ctx = final.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(cur, 0, 0, targetW, targetH);
+  return final;
+}
+
+/**
+ * Resize image onto a canvas.
+ * mode: 'cover'   — fill entire canvas, center-crop excess  (high-quality)
+ *       'contain' — fit inside canvas, transparent fill     (high-quality)
+ *       'stretch' — fill ignoring aspect ratio
+ *
+ * Uses multi-step halving so large downscales (e.g. 4640→400) are sharp.
+ */
+function resize(src, targetW, targetH, mode = 'cover') {
+  const { w: srcW, h: srcH } = dims(src);
+
+  if (mode === 'cover') {
+    // Extract the exact crop region from source first, then step-scale it down.
+    const scale = Math.max(targetW / srcW, targetH / srcH);
+    const cropW = targetW / scale;
+    const cropH = targetH / scale;
+    const cropX = (srcW - cropW) / 2;
+    const cropY = (srcH - cropH) / 2;
+
+    const cw = Math.round(cropW), ch = Math.round(cropH);
+    const cropped = makeCanvas(cw, ch);
+    const cctx = cropped.getContext('2d');
+    cctx.imageSmoothingEnabled = true;
+    cctx.imageSmoothingQuality = 'high';
+    cctx.drawImage(src, cropX, cropY, cropW, cropH, 0, 0, cw, ch);
+
+    return stepDown(cropped, targetW, targetH);
+
+  } else if (mode === 'contain') {
+    const scale = Math.min(targetW / srcW, targetH / srcH);
+    const dw = Math.round(srcW * scale);
+    const dh = Math.round(srcH * scale);
+
+    const scaled = stepDown(src, dw, dh);
+
+    const c = makeCanvas(targetW, targetH);
+    const ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(scaled, Math.round((targetW - dw) / 2), Math.round((targetH - dh) / 2));
+    return c;
+
+  } else {
+    return stepDown(src, targetW, targetH);
+  }
+}
+
+function toBlob(canvas) {
+  return new Promise(res => canvas.toBlob(res, 'image/png'));
+}
+
+// ═══════════════════════════════════════════
+//  OUTPUT PREVIEWS
+// ═══════════════════════════════════════════
+function updateOutputPreviews() {
+  const imgs = state.images;
+
+  // Top Shelf preview — composite of background + transparent logo with settings
+  if (imgs['background'] || imgs['logo-with-bg'] || imgs['logo-transparent']) {
+    renderTsPreview('opreview-topshelf');
+    renderTsPreview('opreview-topshelf-wide');
+  }
+
+  // Icon composite preview (Back + Front only — matches baseline structure)
+  if (imgs['background'] || imgs['logo-transparent']) {
+    const composite = makeCanvas(400, 240);
+    const ctx = composite.getContext('2d');
+
+    if (imgs['background']) {
+      ctx.drawImage(resize(imgs['background'], 400, 240, 'cover'), 0, 0);
+    }
+    if (imgs['logo-transparent']) {
+      ctx.drawImage(renderFrontWithSettings(imgs['logo-transparent'], 400, 240), 0, 0);
+    }
+
+    const area = document.getElementById('opreview-icon');
+    area.innerHTML = '';
+    const scaled = resize(composite, area.clientWidth || 360, 132, 'cover');
+    scaled.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+    area.appendChild(scaled);
+  }
+
+  // Layer thumbs
+  renderThumb('lthumb-back',  imgs['background'],       'cover');
+  renderThumb('lthumb-front', imgs['logo-transparent'], 'contain');
+}
+
+function renderPreview(areaId, img, mode) {
+  const area = document.getElementById(areaId);
+  area.innerHTML = '';
+  const c = resize(img, area.clientWidth || 360, 132, mode);
+  c.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+  area.appendChild(c);
+}
+
+function renderThumb(id, img, mode) {
+  if (!img) return;
+  const el = document.getElementById(id);
+  el.innerHTML = '';
+  const c = resize(img, 200, 72, mode);
+  c.style.cssText = 'width:100%;height:100%;display:block;';
+  el.appendChild(c);
+}
+
+// ═══════════════════════════════════════════
+//  CONTENTS.JSON BUILDERS  (matches baseline exactly)
+// ═══════════════════════════════════════════
+const j = obj => JSON.stringify(obj, null, 2);
+
+// Images.xcassets/Contents.json
+const cjRoot = () => j({ info: { author: 'xcode', version: 1 } });
+
+// Brand Assets.brandassets/Contents.json  — includes size field on every asset
+const cjBrandassets = () => j({
+  assets: [
+    { filename: 'App Icon - App Store.imagestack', idiom: 'tv', role: 'primary-app-icon', size: '1280x768' },
+    { filename: 'App Icon.imagestack',             idiom: 'tv', role: 'primary-app-icon', size: '400x240'  },
+    { filename: 'Top Shelf Image Wide.imageset',   idiom: 'tv', role: 'top-shelf-image-wide', size: '2320x720' },
+    { filename: 'Top Shelf Image.imageset',        idiom: 'tv', role: 'top-shelf-image',      size: '1920x720' }
+  ],
+  info: { author: 'xcode', version: 1 }
+});
+
+// *.imagestack/Contents.json  — Front listed before Back, no Middle
+const cjImagestack = () => j({
+  info: { author: 'xcode', version: 1 },
+  layers: [
+    { filename: 'Front.imagestacklayer' },
+    { filename: 'Back.imagestacklayer'  }
+  ]
+});
+
+// *.imagestacklayer/Contents.json  — minimal, no images array
+const cjImagestacklayer = () => j({ info: { author: 'xcode', version: 1 } });
+
+// *.imagestacklayer/Content.imageset/Contents.json  — 1x + 2x for home icon layers
+const cjLayerImageset = (name1x, name2x) => j({
+  images: [
+    { filename: name1x, idiom: 'tv', scale: '1x' },
+    { filename: name2x, idiom: 'tv', scale: '2x' }
+  ],
+  info: { author: 'xcode', version: 1 }
+});
+
+// App Store layer imageset  — no scale attribute (matches baseline)
+const cjAppStoreLayerImageset = (filename) => j({
+  images: [{ filename, idiom: 'tv' }],
+  info: { author: 'xcode', version: 1 }
+});
+
+// Top Shelf imagesets  — 1x + 2x, no role field inside images array
+const cjTopShelfImageset = (name1x, name2x) => j({
+  images: [
+    { filename: name1x, idiom: 'tv', scale: '1x' },
+    { filename: name2x, idiom: 'tv', scale: '2x' }
+  ],
+  info: { author: 'xcode', version: 1 }
+});
+
+// launchscreen.imageset/Contents.json  — 1x / 2x / 3x universal (same file for all)
+const cjLaunchscreen = (f1, f2, f3) => j({
+  images: [
+    { filename: f1, idiom: 'universal', scale: '1x' },
+    { filename: f2, idiom: 'universal', scale: '2x' },
+    { filename: f3, idiom: 'universal', scale: '3x' }
+  ],
+  info: { author: 'xcode', version: 1 }
+});
+
+// ═══════════════════════════════════════════
+//  EXPORT
+// ═══════════════════════════════════════════
+async function runExport() {
+  if (typeof JSZip === 'undefined') {
+    log('err', '✕  JSZip not loaded — check internet connection.');
+    return;
+  }
+
+  const btn = document.getElementById('exportBtn');
+  btn.disabled = true;
+  btn.classList.add('processing');
+  btn.innerHTML = `<svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+  </svg> Processing…`;
+
+  log('proc', '▶  Starting tvOS asset generation…');
+
+  try {
+    const zip  = new JSZip();
+    const imgs = state.images;
+    const bg   = imgs['background'];
+    const logo = imgs['logo-transparent'];
+    const logoWithBg = imgs['logo-with-bg'];
+    const splash = imgs['splash'] || bg; // fall back to background if no splash
+
+    // ── Images.xcassets root
+    const root = zip.folder('Images.xcassets');
+    root.file('Contents.json', cjRoot());
+    log('ok', '  ✓  Images.xcassets/Contents.json');
+
+    // ── Brand Assets.brandassets
+    const brand = root.folder('Brand Assets.brandassets');
+    brand.file('Contents.json', cjBrandassets());
+    log('ok', '  ✓  Brand Assets.brandassets/Contents.json');
+
+    // ════════════════════════════════════════
+    //  App Icon - App Store.imagestack  (1280×768, no scale attr)
+    // ════════════════════════════════════════
+    const asStack = brand.folder('App Icon - App Store.imagestack');
+    asStack.file('Contents.json', cjImagestack());
+    log('ok', '  ✓  App Icon - App Store.imagestack/Contents.json');
+
+    // App Store → Front layer  (logo-transparent → 1280×768)
+    {
+      const asF = asStack.folder('Front.imagestacklayer');
+      asF.file('Contents.json', cjImagestacklayer());
+      const asFC = asF.folder('Content.imageset');
+      asFC.file('Contents.json', cjAppStoreLayerImageset('appstore_front.png'));
+      const src = logo;
+      if (src) {
+        log('proc', '  ⟳  App Store Front → 1280×768…');
+        asFC.file('appstore_front.png', await toBlob(renderFrontWithSettings(src, 1280, 768)));
+        log('ok',   '  ✓  App Store/Front/Content.imageset/appstore_front.png');
+      } else {
+        asFC.file('appstore_front.png', await toBlob(makeCanvas(1280, 768)));
+      }
+    }
+
+    // App Store → Back layer  (pure background only — no logo baked in, tvOS composites layers at runtime)
+    {
+      const asB = asStack.folder('Back.imagestacklayer');
+      asB.file('Contents.json', cjImagestacklayer());
+      const asBC = asB.folder('Content.imageset');
+      asBC.file('Contents.json', cjAppStoreLayerImageset('appstore_background.png'));
+      const src = bg || logoWithBg;
+      if (src) {
+        log('proc', '  ⟳  App Store Back → 1280×768 (background only)…');
+        asBC.file('appstore_background.png', await toBlob(resize(src, 1280, 768, 'cover')));
+        log('ok',   '  ✓  App Store/Back/Content.imageset/appstore_background.png');
+      } else {
+        asBC.file('appstore_background.png', await toBlob(makeCanvas(1280, 768)));
+      }
+    }
+
+    // ════════════════════════════════════════
+    //  App Icon.imagestack  (400×240 @1x, 800×480 @2x)
+    // ════════════════════════════════════════
+    const homeStack = brand.folder('App Icon.imagestack');
+    homeStack.file('Contents.json', cjImagestack());
+    log('ok', '  ✓  App Icon.imagestack/Contents.json');
+
+    // Home → Front layer  (logo-transparent → 400×240 + 800×480)
+    {
+      const hF = homeStack.folder('Front.imagestacklayer');
+      hF.file('Contents.json', cjImagestacklayer());
+      const hFC = hF.folder('Content.imageset');
+      hFC.file('Contents.json', cjLayerImageset('front.png', 'front_2x.png'));
+      if (logo) {
+        log('proc', '  ⟳  Home Icon Front → 400×240 + 800×480…');
+        hFC.file('front.png',    await toBlob(renderFrontWithSettings(logo, 400, 240)));
+        hFC.file('front_2x.png', await toBlob(renderFrontWithSettings(logo, 800, 480)));
+        log('ok', '  ✓  App Icon/Front/Content.imageset/front.png + front_2x.png');
+      } else {
+        hFC.file('front.png',    await toBlob(makeCanvas(400, 240)));
+        hFC.file('front_2x.png', await toBlob(makeCanvas(800, 480)));
+      }
+    }
+
+    // Home → Back layer  (background → 400×240 + 800×480)
+    {
+      const hB = homeStack.folder('Back.imagestacklayer');
+      hB.file('Contents.json', cjImagestacklayer());
+      const hBC = hB.folder('Content.imageset');
+      hBC.file('Contents.json', cjLayerImageset('background.png', 'background_2x.png'));
+      if (bg) {
+        log('proc', '  ⟳  Home Icon Back → 400×240 + 800×480…');
+        hBC.file('background.png',    await toBlob(resize(bg, 400, 240, 'cover')));
+        hBC.file('background_2x.png', await toBlob(resize(bg, 800, 480, 'cover')));
+        log('ok', '  ✓  App Icon/Back/Content.imageset/background.png + background_2x.png');
+      } else {
+        hBC.file('background.png',    await toBlob(makeCanvas(400, 240)));
+        hBC.file('background_2x.png', await toBlob(makeCanvas(800, 480)));
+      }
+    }
+
+    // ════════════════════════════════════════
+    //  Top Shelf Image.imageset  (1920×720 @1x, 3840×1440 @2x)
+    //  Source: Logo with Background (branded 16:9), fallback → Background
+    // ════════════════════════════════════════
+    {
+      const ts = brand.folder('Top Shelf Image.imageset');
+      ts.file('Contents.json', cjTopShelfImageset('topshelf.png', 'topshelf_2x.png'));
+      if (bg || logoWithBg || logo) {
+        log('proc', '  ⟳  Top Shelf → 1920×720 + 3840×1440 (background + logo composite)…');
+        ts.file('topshelf.png',    await toBlob(renderTopShelfComposite(1920, 720)));
+        ts.file('topshelf_2x.png', await toBlob(renderTopShelfComposite(3840, 1440)));
+        log('ok', '  ✓  Top Shelf Image/topshelf.png + topshelf_2x.png');
+      } else {
+        ts.file('topshelf.png',    await toBlob(makeCanvas(1920, 720)));
+        ts.file('topshelf_2x.png', await toBlob(makeCanvas(3840, 1440)));
+      }
+    }
+
+    // ════════════════════════════════════════
+    //  Top Shelf Image Wide.imageset  (2320×720 @1x, 4640×1440 @2x)
+    //  Source: Background Image (4640×1440 wide canvas)
+    // ════════════════════════════════════════
+    {
+      const tsw = brand.folder('Top Shelf Image Wide.imageset');
+      tsw.file('Contents.json', cjTopShelfImageset('topshelf_wide.png', 'topshelf_wide_2x.png'));
+      if (bg || logoWithBg || logo) {
+        log('proc', '  ⟳  Top Shelf Wide → 2320×720 + 4640×1440 (background + logo composite)…');
+        tsw.file('topshelf_wide.png',    await toBlob(renderTopShelfComposite(2320, 720)));
+        tsw.file('topshelf_wide_2x.png', await toBlob(renderTopShelfComposite(4640, 1440)));
+        log('ok', '  ✓  Top Shelf Wide/topshelf_wide.png + topshelf_wide_2x.png');
+      } else {
+        tsw.file('topshelf_wide.png',    await toBlob(makeCanvas(2320, 720)));
+        tsw.file('topshelf_wide_2x.png', await toBlob(makeCanvas(4640, 1440)));
+      }
+    }
+
+    // ════════════════════════════════════════
+    //  launchscreen.imageset  (same PNG for 1x / 2x / 3x)
+    // ════════════════════════════════════════
+    {
+      const ls = root.folder('launchscreen.imageset');
+      ls.file('Contents.json', cjLaunchscreen('splash.png', 'splash_2x.png', 'splash_3x.png'));
+      if (splash) {
+        log('proc', '  ⟳  Launch Screen → 1920×1080 (Apple tvOS required size)…');
+        const blob = await toBlob(resize(splash, 1920, 1080, 'cover'));
+        ls.file('splash.png',    blob);
+        ls.file('splash_2x.png', blob);
+        ls.file('splash_3x.png', blob);
+        log('ok', '  ✓  launchscreen.imageset/splash.png + _2x + _3x (1920×1080)');
+      } else {
+        const blob = await toBlob(makeCanvas(1920, 1080));
+        ls.file('splash.png', blob); ls.file('splash_2x.png', blob); ls.file('splash_3x.png', blob);
+      }
+    }
+
+    // ── ZIP
+    log('proc', '  ⟳  Packaging ZIP…');
+    const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+
+    const url = URL.createObjectURL(zipBlob);
+    const a = document.createElement('a');
+    const assetName = (document.getElementById('assetName').value.trim() || 'Images');
+    const zipName = `${assetName}.xcassets.zip`;
+    a.href = url; a.download = zipName;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+    log('ok', `✓  Download started: ${zipName} (${(zipBlob.size/1024).toFixed(0)} KB)`);
+    log('ok', '    Unzip → drag Images.xcassets into Xcode project navigator.');
+
+  } catch (err) {
+    log('err', `✕  ${err.message}`);
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('processing');
+    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+    </svg> Export Asset Folder`;
+    updateReadiness();
+  }
+}
+
+// ═══════════════════════════════════════════
+//  TOP SHELF EDITOR
+// ═══════════════════════════════════════════
+// Composite: background (cover) + transparent logo (contain + position settings)
+function renderTopShelfComposite(targetW, targetH) {
+  const imgs  = state.images;
+  const back  = imgs['background'] || imgs['logo-with-bg'];
+  const front = imgs['logo-transparent'];
+
+  const c   = makeCanvas(targetW, targetH);
+  const ctx = c.getContext('2d');
+
+  // Back layer — always cover-fill
+  if (back) {
+    ctx.drawImage(resize(back, targetW, targetH, 'cover'), 0, 0);
+  } else {
+    ctx.fillStyle = '#0A0C14';
+    ctx.fillRect(0, 0, targetW, targetH);
+  }
+
+  // Front layer — transparent logo with topShelfSettings
+  if (front) {
+    const { w: srcW, h: srcH } = dims(front);
+    const scaleF    = state.topShelfSettings.scale / 100;
+    const baseScale = Math.min(targetW / srcW, targetH / srcH) * scaleF;
+    const drawW     = srcW * baseScale;
+    const drawH     = srcH * baseScale;
+    const pxX = targetW / 1920;
+    const pxY = targetH / 720;
+    const drawX = (targetW - drawW) / 2 + state.topShelfSettings.offsetX * pxX;
+    const drawY = (targetH - drawH) / 2 + state.topShelfSettings.offsetY * pxY;
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(front, drawX, drawY, drawW, drawH);
+  }
+
+  return c;
+}
+
+function renderTsPreview(areaId) {
+  const area = document.getElementById(areaId);
+  const w    = area.clientWidth  || 360;
+  const h    = area.clientHeight || 132;
+  area.innerHTML = '';
+  const c = renderTopShelfComposite(w, h);
+  c.style.cssText = 'width:100%;height:100%;display:block;';
+  area.appendChild(c);
+}
+
+function drawTsEditorCanvas() {
+  const canvas = document.getElementById('tsEditorCanvas');
+  const ctx    = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(renderTopShelfComposite(canvas.width, canvas.height), 0, 0);
+}
+
+function openTopShelfEditor() {
+  const hasAsset = state.images['background'] || state.images['logo-with-bg'] || state.images['logo-transparent'];
+  if (!hasAsset) { return; }
+  document.getElementById('tsEditorOverlay').classList.add('open');
+  document.getElementById('ts-sl-scale').value = state.topShelfSettings.scale;
+  document.getElementById('ts-sl-x').value     = state.topShelfSettings.offsetX;
+  document.getElementById('ts-sl-y').value     = state.topShelfSettings.offsetY;
+  document.getElementById('ts-lbl-scale').textContent = state.topShelfSettings.scale + '%';
+  document.getElementById('ts-lbl-x').textContent     = state.topShelfSettings.offsetX + ' px';
+  document.getElementById('ts-lbl-y').textContent     = state.topShelfSettings.offsetY + ' px';
+  drawTsEditorCanvas();
+}
+
+function closeTopShelfEditor() {
+  document.getElementById('tsEditorOverlay').classList.remove('open');
+  updateOutputPreviews();
+}
+
+function onTsSlider() {
+  state.topShelfSettings.scale   = parseInt(document.getElementById('ts-sl-scale').value);
+  state.topShelfSettings.offsetX = parseInt(document.getElementById('ts-sl-x').value);
+  state.topShelfSettings.offsetY = parseInt(document.getElementById('ts-sl-y').value);
+  document.getElementById('ts-lbl-scale').textContent = state.topShelfSettings.scale + '%';
+  document.getElementById('ts-lbl-x').textContent     = state.topShelfSettings.offsetX + ' px';
+  document.getElementById('ts-lbl-y').textContent     = state.topShelfSettings.offsetY + ' px';
+  drawTsEditorCanvas();
+}
+
+function resetTopShelfEditor() {
+  state.topShelfSettings = { scale: 100, offsetX: 0, offsetY: 0 };
+  document.getElementById('ts-sl-scale').value = 100;
+  document.getElementById('ts-sl-x').value     = 0;
+  document.getElementById('ts-sl-y').value     = 0;
+  document.getElementById('ts-lbl-scale').textContent = '100%';
+  document.getElementById('ts-lbl-x').textContent     = '0 px';
+  document.getElementById('ts-lbl-y').textContent     = '0 px';
+  drawTsEditorCanvas();
+}
+
+// ═══════════════════════════════════════════
+//  FRONT LAYER EDITOR
+// ═══════════════════════════════════════════
+function renderFrontWithSettings(src, targetW, targetH) {
+  const { w: srcW, h: srcH } = dims(src);
+  const scaleF     = state.frontSettings.scale / 100;
+  const baseScale  = Math.min(targetW / srcW, targetH / srcH) * scaleF;
+  const drawW      = srcW * baseScale;
+  const drawH      = srcH * baseScale;
+  const pixelScaleX = targetW / 400;
+  const pixelScaleY = targetH / 240;
+  const drawX = (targetW - drawW) / 2 + state.frontSettings.offsetX * pixelScaleX;
+  const drawY = (targetH - drawH) / 2 + state.frontSettings.offsetY * pixelScaleY;
+  const c = makeCanvas(targetW, targetH);
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(src, drawX, drawY, drawW, drawH);
+  return c;
+}
+
+function drawEditorCanvas() {
+  const imgs   = state.images;
+  const canvas = document.getElementById('editorCanvas');
+  const ctx    = canvas.getContext('2d');
+  ctx.clearRect(0, 0, 800, 480);
+
+  if (imgs['background']) {
+    ctx.drawImage(resize(imgs['background'], 800, 480, 'cover'), 0, 0);
+  } else {
+    ctx.fillStyle = '#1F2535';
+    ctx.fillRect(0, 0, 800, 480);
+  }
+
+  if (imgs['logo-transparent']) {
+    ctx.drawImage(renderFrontWithSettings(imgs['logo-transparent'], 800, 480), 0, 0);
+  }
+}
+
+function openFrontEditor() {
+  document.getElementById('frontEditorOverlay').classList.add('open');
+  // Sync slider labels to current state
+  document.getElementById('sl-scale').value   = state.frontSettings.scale;
+  document.getElementById('sl-x').value       = state.frontSettings.offsetX;
+  document.getElementById('sl-y').value       = state.frontSettings.offsetY;
+  document.getElementById('lbl-scale').textContent = state.frontSettings.scale + '%';
+  document.getElementById('lbl-x').textContent     = state.frontSettings.offsetX + ' px';
+  document.getElementById('lbl-y').textContent     = state.frontSettings.offsetY + ' px';
+  drawEditorCanvas();
+}
+
+function closeFrontEditor() {
+  document.getElementById('frontEditorOverlay').classList.remove('open');
+  updateOutputPreviews();
+}
+
+function onSlider() {
+  state.frontSettings.scale   = parseInt(document.getElementById('sl-scale').value);
+  state.frontSettings.offsetX = parseInt(document.getElementById('sl-x').value);
+  state.frontSettings.offsetY = parseInt(document.getElementById('sl-y').value);
+  document.getElementById('lbl-scale').textContent = state.frontSettings.scale + '%';
+  document.getElementById('lbl-x').textContent     = state.frontSettings.offsetX + ' px';
+  document.getElementById('lbl-y').textContent     = state.frontSettings.offsetY + ' px';
+  drawEditorCanvas();
+}
+
+function resetFrontEditor() {
+  state.frontSettings = { scale: 100, offsetX: 0, offsetY: 0 };
+  document.getElementById('sl-scale').value = 100;
+  document.getElementById('sl-x').value     = 0;
+  document.getElementById('sl-y').value     = 0;
+  document.getElementById('lbl-scale').textContent = '100%';
+  document.getElementById('lbl-x').textContent     = '0 px';
+  document.getElementById('lbl-y').textContent     = '0 px';
+  drawEditorCanvas();
+}
+
+function updateFilenamePreview() {
+  const name = document.getElementById('assetName').value.trim() || 'Images';
+  document.getElementById('filenamePreview').textContent = `${name}.xcassets.zip`;
+}
+
+// ═══════════════════════════════════════════
+//  LOG
+// ═══════════════════════════════════════════
+function log(type, msg) {
+  const panel = document.getElementById('logPanel');
+  panel.classList.add('show');
+  const t = new Date().toTimeString().slice(0, 8);
+  const row = document.createElement('div');
+  row.className = 'log-row ' + type;
+  row.innerHTML = `<span class="log-t">${t}</span><span class="log-m">${msg}</span>`;
+  panel.appendChild(row);
+  panel.scrollTop = panel.scrollHeight;
+}
+</script>
+</body>
+</html>
