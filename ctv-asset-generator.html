@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CTV Asset Generator — Android / Fire TV / Roku</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Barlow:wght@400;500;600;700;800&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    :root {
+      --bg-900:#060709; --bg-800:#0C0E14; --bg-700:#11141C; --bg-600:#181C28; --bg-500:#1F2535;
+      --border-subtle:#222840; --border-default:#2C3450; --border-bright:#3A4868;
+      --text-100:#EDF1FF; --text-200:#B2BFDA; --text-300:#627090; --text-400:#38455C;
+      --amber:#F59E0B; --amber-hover:#FBBF24; --amber-dim:rgba(245,158,11,0.12);
+      --green:#2DD4BF; --green-dim:rgba(45,212,191,0.12);
+      --red:#F56565; --red-dim:rgba(245,101,101,0.12);
+      --android:#22C55E; --android-dim:rgba(34,197,94,0.12);
+      --roku:#3B82F6; --roku-dim:rgba(59,130,246,0.12);
+      --r:8px; --r-lg:14px;
+      --font-mono:'IBM Plex Mono','Menlo',monospace;
+      --font-ui:'Barlow',sans-serif;
+      --font-display:'Barlow Condensed',sans-serif;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{font-family:var(--font-ui);background:var(--bg-900);color:var(--text-100);min-height:100vh;overflow-x:hidden}
+    body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,0.028) 1px,transparent 1px);background-size:24px 24px;pointer-events:none;z-index:0}
+    *{position:relative;z-index:1}
+
+    header{height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 40px;border-bottom:1px solid var(--border-subtle);background:rgba(6,7,9,0.85);backdrop-filter:blur(16px);position:sticky;top:0;z-index:200}
+    .logo{display:flex;align-items:center;gap:14px}
+    .logo-mark{width:32px;height:32px;background:linear-gradient(135deg,var(--android) 0%,var(--roku) 100%);border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:10px;font-weight:600;color:white;flex-shrink:0}
+    .logo-text{font-family:var(--font-mono);font-size:12px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-200)}
+    .logo-sep{width:1px;height:18px;background:var(--border-default)}
+    .logo-version{font-family:var(--font-mono);font-size:10px;color:var(--text-400);letter-spacing:0.06em;padding:2px 7px;border:1px solid var(--border-subtle);border-radius:4px}
+    .header-right{display:flex;align-items:center;gap:8px}
+    .live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:livepulse 2.4s ease-in-out infinite}
+    @keyframes livepulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.85)}}
+    .header-right span{font-family:var(--font-mono);font-size:10px;color:var(--text-400);letter-spacing:0.06em}
+
+    main{max-width:1100px;margin:0 auto;padding:52px 40px 100px}
+
+    .hero{padding-bottom:44px;border-bottom:1px solid var(--border-subtle);margin-bottom:44px}
+    .hero-eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--amber);margin-bottom:18px}
+    .hero-eyebrow::before{content:'';width:24px;height:1px;background:var(--amber)}
+    .hero h1{font-family:var(--font-display);font-size:58px;font-weight:800;line-height:1;margin-bottom:14px}
+    .hero h1 em{font-style:normal;color:var(--amber)}
+    .hero-sub{font-size:15px;color:var(--text-300);line-height:1.65;max-width:580px;margin-bottom:22px}
+    .hero-tags{display:flex;flex-wrap:wrap;gap:8px}
+    .tag{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border:1px solid var(--border-default);border-radius:100px;font-family:var(--font-mono);font-size:10px;color:var(--text-300);letter-spacing:0.05em}
+    .tag::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--amber);opacity:0.6}
+
+    .section-hd{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+    .section-num{font-family:var(--font-mono);font-size:10px;color:var(--amber);letter-spacing:0.12em;flex-shrink:0}
+    .section-name{font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-300);flex-shrink:0}
+    .section-rule{flex:1;height:1px;background:var(--border-subtle)}
+
+    /* UPLOAD */
+    .upload-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:44px}
+    .ucard{background:var(--bg-700);border:1px solid var(--border-subtle);border-radius:var(--r-lg);overflow:hidden;transition:border-color 0.2s}
+    .ucard.drag-over{border-color:var(--amber);box-shadow:0 0 0 3px var(--amber-dim)}
+    .ucard.state-uploaded{border-color:rgba(45,212,191,0.35)}
+    .ucard.state-warn{border-color:rgba(245,158,11,0.4)}
+    .ucard-head{display:flex;align-items:flex-start;justify-content:space-between;padding:14px 16px 12px;border-bottom:1px solid var(--border-subtle);gap:12px}
+    .ucard-index{font-family:var(--font-mono);font-size:9px;color:var(--amber);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:3px}
+    .ucard-title{font-size:14px;font-weight:700;margin-bottom:2px}
+    .ucard-desc{font-size:11px;color:var(--text-300)}
+    .ucard-indicator{width:8px;height:8px;border-radius:50%;background:var(--border-bright);flex-shrink:0;margin-top:4px;transition:all 0.3s}
+    .state-uploaded .ucard-indicator{background:var(--green);box-shadow:0 0 8px rgba(45,212,191,0.5)}
+    .state-warn .ucard-indicator{background:var(--amber)}
+    .drop-zone{padding:20px 16px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:background 0.18s;border-bottom:1px solid var(--border-subtle)}
+    .state-uploaded .drop-zone,.state-warn .drop-zone{display:none}
+    .drop-zone:hover{background:var(--bg-600)}
+    .drop-zone input[type=file]{display:none}
+    .drop-icon-wrap{width:36px;height:36px;border-radius:9px;background:var(--bg-500);border:1px solid var(--border-default);display:flex;align-items:center;justify-content:center}
+    .drop-icon-wrap svg{width:18px;height:18px;stroke:var(--text-300)}
+    .drop-txt{text-align:center}
+    .drop-txt-main{font-size:12px;font-weight:600;margin-bottom:2px}
+    .drop-txt-sub{font-size:10px;color:var(--text-300)}
+    .dim-pill{font-family:var(--font-mono);font-size:9px;color:var(--amber);background:var(--amber-dim);border:1px solid rgba(245,158,11,0.2);border-radius:100px;padding:2px 10px}
+    .ucard-preview{display:none;flex-direction:column}
+    .state-uploaded .ucard-preview,.state-warn .ucard-preview{display:flex}
+    .preview-img{width:100%;height:80px;object-fit:cover;display:block}
+    .transparent-bg{background:repeating-conic-gradient(#1a1f2e 0% 25%,#11141c 0% 50%) 0 0/12px 12px}
+    .preview-footer{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;border-top:1px solid var(--border-subtle)}
+    .preview-dims{font-family:var(--font-mono);font-size:10px;color:var(--text-400)}
+    .preview-replace{font-family:var(--font-mono);font-size:10px;color:var(--amber);cursor:pointer}
+    .preview-replace:hover{text-decoration:underline}
+    .val-bar{display:none;font-family:var(--font-mono);font-size:10px;padding:7px 12px}
+    .val-bar.show{display:block}
+    .val-bar.ok{color:var(--green);background:var(--green-dim)}
+    .val-bar.warn{color:var(--amber);background:var(--amber-dim)}
+    .val-bar.err{color:var(--red);background:var(--red-dim)}
+
+    /* COMPOSERS */
+    .composer-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:44px}
+    .ccard{background:var(--bg-700);border:1px solid var(--border-subtle);border-radius:var(--r-lg);overflow:hidden}
+    .ccard-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border-subtle)}
+    .ccard-title{font-family:var(--font-display);font-size:17px;font-weight:700;letter-spacing:0.02em}
+    .ccard-sub{font-size:10px;color:var(--text-300);margin-top:2px}
+    .ccard-preview{background:var(--bg-800);overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative;height:130px}
+    .ccard-empty{font-family:var(--font-mono);font-size:10px;color:var(--text-400)}
+    .ccard-footer{display:flex;align-items:center;gap:8px;padding:10px 14px;border-top:1px solid var(--border-subtle)}
+    .ccard-outputs{flex:1;display:flex;flex-wrap:wrap;gap:4px}
+    .out-badge{font-family:var(--font-mono);font-size:8px;padding:2px 6px;border-radius:4px;color:var(--text-300);background:var(--bg-500);border:1px solid var(--border-subtle)}
+    .edit-btn{display:flex;align-items:center;gap:5px;padding:6px 14px;background:var(--bg-500);border:1px solid var(--border-default);border-radius:6px;color:var(--text-300);font-family:var(--font-mono);font-size:10px;cursor:pointer;transition:all 0.18s;white-space:nowrap;flex-shrink:0}
+    .edit-btn:hover{background:var(--amber-dim);color:var(--amber);border-color:var(--amber)}
+    .edit-btn svg{width:12px;height:12px}
+
+    /* PLATFORM CARDS */
+    .platform-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:44px}
+    .pcard{background:var(--bg-700);border:2px solid var(--border-subtle);border-radius:var(--r-lg);overflow:hidden;cursor:pointer;transition:all 0.2s;user-select:none}
+    .pcard:hover{border-color:var(--border-bright)}
+    .pcard.selected.android{border-color:var(--android);box-shadow:0 0 0 3px var(--android-dim)}
+    .pcard.selected.roku{border-color:var(--roku);box-shadow:0 0 0 3px var(--roku-dim)}
+    .pcard-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border-subtle)}
+    .pcard-brand{display:flex;align-items:center;gap:10px}
+    .pcard-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
+    .android .pcard-icon{background:var(--android-dim)}
+    .roku .pcard-icon{background:var(--roku-dim)}
+    .pcard-name{font-family:var(--font-display);font-size:17px;font-weight:700}
+    .pcard-sub{font-size:10px;color:var(--text-300);margin-top:1px}
+    .pcard-check{width:22px;height:22px;border-radius:6px;border:2px solid var(--border-bright);display:flex;align-items:center;justify-content:center;transition:all 0.18s;flex-shrink:0}
+    .selected.android .pcard-check{background:var(--android);border-color:var(--android)}
+    .selected.roku .pcard-check{background:var(--roku);border-color:var(--roku)}
+    .pcard-check svg{width:12px;height:12px;stroke:white;opacity:0;transition:opacity 0.15s}
+    .selected .pcard-check svg{opacity:1}
+    .pcard-specs{padding:10px 16px 14px;display:flex;flex-direction:column;gap:5px}
+    .pspec-row{display:flex;align-items:baseline;gap:10px}
+    .pspec-label{font-size:11px;color:var(--text-300);min-width:135px;flex-shrink:0}
+    .pspec-dim{font-family:var(--font-mono);font-size:10px;color:var(--text-200)}
+
+    /* OUTPUT TREE */
+    .tree-tabs{display:flex;border-bottom:1px solid var(--border-subtle)}
+    .tree-tab{font-family:var(--font-mono);font-size:11px;padding:8px 18px;color:var(--text-400);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.18s;margin-bottom:-1px}
+    .tree-tab:hover{color:var(--text-200)}
+    .tree-tab.android.active{border-bottom-color:var(--android);color:var(--android)}
+    .tree-tab.roku.active{border-bottom-color:var(--roku);color:var(--roku)}
+    .tree-pane{display:none}
+    .tree-pane.active{display:block}
+    .tree-wrap{background:var(--bg-800);border:1px solid var(--border-subtle);border-top:none;border-radius:0 0 var(--r) var(--r);padding:14px 18px;margin-bottom:44px}
+    .tree-row{display:flex;align-items:baseline;line-height:1.9;flex-wrap:wrap;gap:2px}
+    .t-dir{font-family:var(--font-mono);font-size:11px;color:#4F8EF7}
+    .t-json{font-family:var(--font-mono);font-size:11px;color:var(--text-300)}
+    .t-file{font-family:var(--font-mono);font-size:11px;color:var(--text-400)}
+    .t-pipe{font-family:var(--font-mono);font-size:11px;color:var(--text-400);white-space:pre}
+    .t-android{color:var(--android)} .t-roku{color:var(--roku)}
+
+    /* EXPORT */
+    .export-panel{display:flex;align-items:center;justify-content:space-between;gap:24px;background:var(--bg-700);border:1px solid var(--border-subtle);border-radius:var(--r-lg);padding:26px 30px;margin-bottom:20px}
+    .export-info h3{font-family:var(--font-display);font-size:21px;font-weight:700;margin-bottom:10px}
+    .filename-row{display:flex;align-items:center;gap:8px;margin:10px 0 6px}
+    .name-input{font-family:var(--font-mono);font-size:13px;background:var(--bg-600);border:1px solid var(--border-default);border-radius:6px;color:var(--text-100);padding:7px 12px;width:180px;outline:none;transition:border-color 0.15s}
+    .name-input:focus{border-color:var(--amber)}
+    .name-suffix{font-family:var(--font-mono);font-size:13px;color:var(--text-300)}
+    .readiness{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+    .rcheck{display:flex;align-items:center;gap:7px;font-family:var(--font-mono);font-size:10px;color:var(--text-400)}
+    .rcheck-dot{width:7px;height:7px;border-radius:50%;background:var(--border-bright);transition:all 0.3s;flex-shrink:0}
+    .rcheck.ready{color:var(--text-200)}
+    .rcheck.ready .rcheck-dot{background:var(--green);box-shadow:0 0 6px rgba(45,212,191,0.6)}
+    .export-btn{display:flex;align-items:center;gap:10px;padding:14px 28px;border:none;border-radius:var(--r);cursor:pointer;font-family:var(--font-display);font-size:15px;font-weight:700;letter-spacing:0.02em;transition:all 0.2s;position:relative;overflow:hidden;white-space:nowrap;background:var(--amber);color:var(--bg-900)}
+    .export-btn::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,0.12) 0%,transparent 60%);pointer-events:none}
+    .export-btn:hover:not(:disabled){background:var(--amber-hover);transform:translateY(-2px);box-shadow:0 10px 32px rgba(245,158,11,0.35)}
+    .export-btn:disabled{background:var(--bg-500);color:var(--text-400);cursor:not-allowed;transform:none;box-shadow:none}
+    .export-btn svg{width:17px;height:17px}
+    .export-btn.processing{background:#4F8EF7;cursor:wait}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .spin{animation:spin 0.9s linear infinite}
+
+    /* LOG */
+    .log-panel{background:var(--bg-800);border:1px solid var(--border-subtle);border-radius:var(--r);padding:14px 18px;font-family:var(--font-mono);font-size:11px;line-height:1.9;max-height:220px;overflow-y:auto;display:none}
+    .log-panel.show{display:block}
+    .log-row{display:flex;gap:14px}
+    .log-t{color:var(--text-400);flex-shrink:0}
+    .log-m{color:var(--text-300)}
+    .log-row.ok .log-m{color:var(--green)}
+    .log-row.err .log-m{color:var(--red)}
+    .log-row.proc .log-m{color:var(--amber)}
+    ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:var(--border-bright);border-radius:2px}
+
+    /* EDITOR MODAL */
+    .editor-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.82);backdrop-filter:blur(10px);z-index:600;display:none;align-items:center;justify-content:center;padding:24px}
+    .editor-overlay.open{display:flex}
+    .editor-panel{background:var(--bg-700);border:1px solid var(--border-default);border-radius:16px;max-width:780px;width:100%;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.7);display:flex;flex-direction:column;max-height:calc(100vh - 48px)}
+    .editor-head{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border-subtle);flex-shrink:0}
+    .editor-head-left{display:flex;align-items:center;gap:10px}
+    .editor-head h3{font-family:var(--font-display);font-size:17px;font-weight:700}
+    .editor-badge{font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:4px;background:var(--amber-dim);color:var(--amber);border:1px solid rgba(245,158,11,0.3)}
+    .editor-close{width:28px;height:28px;border-radius:6px;background:var(--bg-500);border:1px solid var(--border-default);color:var(--text-200);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;flex-shrink:0}
+    .editor-close:hover{background:var(--red-dim);color:var(--red);border-color:var(--red)}
+    .editor-preview{background:var(--bg-900);padding:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .editor-canvas-bg{background:linear-gradient(45deg,#151520 25%,transparent 25%),linear-gradient(-45deg,#151520 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#151520 75%),linear-gradient(-45deg,transparent 75%,#151520 75%);background-size:12px 12px;background-position:0 0,0 6px,6px -6px,-6px 0;background-color:#0c0c18;border-radius:8px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.5)}
+    #editorCanvas{display:block;max-width:100%;max-height:340px;width:auto;height:auto}
+    .editor-controls{padding:14px 20px 10px;border-top:1px solid var(--border-subtle);display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px 24px;flex-shrink:0}
+    .ctrl-section-label{grid-column:1/-1;font-family:var(--font-mono);font-size:9px;color:var(--text-400);letter-spacing:0.14em;text-transform:uppercase;padding-bottom:2px;border-bottom:1px solid var(--border-subtle)}
+    .ctrl-grp{display:flex;flex-direction:column;gap:8px}
+    .ctrl-top{display:flex;align-items:center;justify-content:space-between;font-family:var(--font-mono);font-size:10px;color:var(--text-300);letter-spacing:0.08em;text-transform:uppercase}
+    .ctrl-val{color:var(--amber);font-weight:600;min-width:44px;text-align:right}
+    input[type=range].ctrl-slider{-webkit-appearance:none;appearance:none;width:100%;height:3px;border-radius:2px;background:var(--border-bright);outline:none;cursor:pointer}
+    input[type=range].ctrl-slider::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--amber);cursor:pointer;box-shadow:0 0 8px rgba(245,158,11,.5)}
+    .editor-footer{display:flex;align-items:center;justify-content:space-between;padding:12px 20px 14px;border-top:1px solid var(--border-subtle);flex-shrink:0}
+    .editor-reset{font-family:var(--font-mono);font-size:11px;color:var(--text-300);background:none;border:1px solid var(--border-default);border-radius:6px;padding:6px 14px;cursor:pointer;transition:all 0.15s}
+    .editor-reset:hover{color:var(--text-100);border-color:var(--border-bright)}
+    .editor-done{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--bg-900);background:var(--amber);border:none;border-radius:8px;padding:9px 26px;cursor:pointer;letter-spacing:0.02em}
+    .editor-done:hover{background:var(--amber-hover)}
+
+    @media(max-width:820px){
+      header{padding:0 20px}main{padding:32px 20px 80px}
+      .upload-grid,.composer-grid,.platform-grid{grid-template-columns:1fr}
+      .hero h1{font-size:36px}
+      .export-panel{flex-direction:column}
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">CTV</div>
+    <span class="logo-text">Asset Generator</span>
+    <div class="logo-sep"></div>
+    <span class="logo-version">Android · Fire TV · Roku</span>
+  </div>
+  <div class="header-right">
+    <div class="live-dot"></div>
+    <span>Browser-only · No upload · All local</span>
+  </div>
+</header>
+
+<main>
+
+  <div class="hero">
+    <div class="hero-eyebrow">Connected TV · Android / Fire TV / Roku</div>
+    <h1>Generate <em>CTV Assets</em><br>For Android &amp; Roku</h1>
+    <p class="hero-sub">Upload 4 source files. Use the live composers to position your logo at each ratio. Export a complete ZIP with all icons, menu logos, banners, and splash screens.</p>
+    <div class="hero-tags">
+      <span class="tag">Android / Amazon Fire TV</span>
+      <span class="tag">Roku</span>
+      <span class="tag">1:1 Square Composer</span>
+      <span class="tag">16:9 Widescreen Composer</span>
+      <span class="tag">No Backend</span>
+    </div>
+  </div>
+
+  <!-- ── 01 SOURCE ASSETS ── -->
+  <div class="section-hd">
+    <span class="section-num">01</span>
+    <span class="section-name">Upload Source Assets</span>
+    <div class="section-rule"></div>
+  </div>
+
+  <div class="upload-grid">
+
+    <!-- 16:9 Logo without BG -->
+    <div class="ucard" id="ucard-logo16t" data-type="logo16t">
+      <div class="ucard-head">
+        <div class="ucard-meta">
+          <div class="ucard-index">Asset 01 · Menu Open outputs · Widescreen Composer</div>
+          <div class="ucard-title">16:9 Logo (No Background)</div>
+          <div class="ucard-desc">Transparent 16:9 logo — used as-is for Menu Open outputs, and as front layer in the widescreen composer.</div>
+        </div>
+        <div class="ucard-indicator"></div>
+      </div>
+      <div class="drop-zone">
+        <input type="file" id="fi-logo16t" accept="image/png,image/*" onchange="handleFile(event,'logo16t')">
+        <div class="drop-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg></div>
+        <div class="drop-txt"><div class="drop-txt-main">Drop PNG or click to upload</div><div class="drop-txt-sub">16:9 ratio · transparent · no background</div></div>
+        <div class="dim-pill">16:9 ratio · PNG · Required ✱</div>
+      </div>
+      <div class="ucard-preview" id="prev-logo16t">
+        <img class="preview-img transparent-bg" id="pimg-logo16t" alt="">
+        <div class="preview-footer"><span class="preview-dims" id="pdims-logo16t"></span><span class="preview-replace" onclick="document.getElementById('fi-logo16t').click()">Replace ↑</span></div>
+      </div>
+      <div class="val-bar" id="val-logo16t"></div>
+    </div>
+
+    <!-- BG Only -->
+    <div class="ucard" id="ucard-bg" data-type="bg">
+      <div class="ucard-head">
+        <div class="ucard-meta">
+          <div class="ucard-index">Asset 02 · Background for composers</div>
+          <div class="ucard-title">Background Only</div>
+          <div class="ucard-desc">Pure background image — no logo. Used as the back layer in both composers.</div>
+        </div>
+        <div class="ucard-indicator"></div>
+      </div>
+      <div class="drop-zone">
+        <input type="file" id="fi-bg" accept="image/png,image/*" onchange="handleFile(event,'bg')">
+        <div class="drop-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg></div>
+        <div class="drop-txt"><div class="drop-txt-main">Drop PNG or click to upload</div><div class="drop-txt-sub">Any size · landscape recommended</div></div>
+        <div class="dim-pill">Any size · PNG · Required ✱</div>
+      </div>
+      <div class="ucard-preview" id="prev-bg">
+        <img class="preview-img" id="pimg-bg" alt="">
+        <div class="preview-footer"><span class="preview-dims" id="pdims-bg"></span><span class="preview-replace" onclick="document.getElementById('fi-bg').click()">Replace ↑</span></div>
+      </div>
+      <div class="val-bar" id="val-bg"></div>
+    </div>
+
+    <!-- 1:1 Logo without BG -->
+    <div class="ucard" id="ucard-logo1x1" data-type="logo1x1">
+      <div class="ucard-head">
+        <div class="ucard-meta">
+          <div class="ucard-index">Asset 03 · Menu Close outputs · Square Composer</div>
+          <div class="ucard-title">1:1 Logo (No Background)</div>
+          <div class="ucard-desc">Transparent square logo — used as-is for Menu Close outputs, and as front layer in the square icon composer.</div>
+        </div>
+        <div class="ucard-indicator"></div>
+      </div>
+      <div class="drop-zone">
+        <input type="file" id="fi-logo1x1" accept="image/png,image/*" onchange="handleFile(event,'logo1x1')">
+        <div class="drop-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg></div>
+        <div class="drop-txt"><div class="drop-txt-main">Drop PNG or click to upload</div><div class="drop-txt-sub">1:1 square · transparent · 1080×1080 px recommended</div></div>
+        <div class="dim-pill">1:1 ratio · PNG · Required ✱</div>
+      </div>
+      <div class="ucard-preview" id="prev-logo1x1">
+        <img class="preview-img transparent-bg" id="pimg-logo1x1" alt="">
+        <div class="preview-footer"><span class="preview-dims" id="pdims-logo1x1"></span><span class="preview-replace" onclick="document.getElementById('fi-logo1x1').click()">Replace ↑</span></div>
+      </div>
+      <div class="val-bar" id="val-logo1x1"></div>
+    </div>
+
+    <!-- 16:9 Splash with BG -->
+    <div class="ucard" id="ucard-splash" data-type="splash">
+      <div class="ucard-head">
+        <div class="ucard-meta">
+          <div class="ucard-index">Asset 04 · Splash / Launch Screen · All platforms</div>
+          <div class="ucard-title">16:9 Splash with Background</div>
+          <div class="ucard-desc">Pre-composited splash screen — used directly for all platform launch screens.</div>
+        </div>
+        <div class="ucard-indicator"></div>
+      </div>
+      <div class="drop-zone">
+        <input type="file" id="fi-splash" accept="image/png,image/*" onchange="handleFile(event,'splash')">
+        <div class="drop-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg></div>
+        <div class="drop-txt"><div class="drop-txt-main">Drop PNG or click to upload</div><div class="drop-txt-sub">1920×1080 px · 16:9 · Optional</div></div>
+        <div class="dim-pill">16:9 · 1920×1080 · Optional</div>
+      </div>
+      <div class="ucard-preview" id="prev-splash">
+        <img class="preview-img" id="pimg-splash" alt="">
+        <div class="preview-footer"><span class="preview-dims" id="pdims-splash"></span><span class="preview-replace" onclick="document.getElementById('fi-splash').click()">Replace ↑</span></div>
+      </div>
+      <div class="val-bar" id="val-splash"></div>
+    </div>
+
+  </div>
+
+  <!-- ── 02 COMPOSERS ── -->
+  <div class="section-hd">
+    <span class="section-num">02</span>
+    <span class="section-name">Composite Editors</span>
+    <div class="section-rule"></div>
+  </div>
+  <p style="font-size:13px;color:var(--text-300);margin-bottom:20px;margin-top:-8px;">
+    <strong style="color:var(--text-200)">Square</strong>: Background + 1:1 Logo. <strong style="color:var(--text-200)">Widescreen</strong>: Background + 16:9 Logo (falls back to 1:1 if no 16:9 logo). Click Edit to position and scale. Result drives all outputs at that ratio.
+  </p>
+
+  <div class="composer-grid">
+
+    <!-- Square 1:1 Composer -->
+    <div class="ccard">
+      <div class="ccard-head">
+        <div><div class="ccard-title">Square · 1:1</div><div class="ccard-sub">Background + 1:1 Logo → all square icon outputs</div></div>
+      </div>
+      <div class="ccard-preview" id="cprev-square"><span class="ccard-empty">Upload Background + 1:1 Logo to preview</span></div>
+      <div class="ccard-footer">
+        <div class="ccard-outputs">
+          <span class="out-badge" style="color:var(--android)">Android 512×512</span>
+          <span class="out-badge" style="color:var(--android)">256×256</span>
+          <span class="out-badge" style="color:var(--roku)">Roku 540×405</span>
+          <span class="out-badge" style="color:var(--roku)">1080×1080</span>
+        </div>
+        <button class="edit-btn" onclick="openEditor('square')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
+          Edit
+        </button>
+      </div>
+    </div>
+
+    <!-- 16:9 Composer -->
+    <div class="ccard">
+      <div class="ccard-head">
+        <div><div class="ccard-title">Widescreen · 16:9</div><div class="ccard-sub">Background + 16:9 Logo → App Banner &amp; Splash (composited with bg)</div></div>
+      </div>
+      <div class="ccard-preview" id="cprev-wide16"><span class="ccard-empty">Upload Background + 16:9 Logo to preview</span></div>
+      <div class="ccard-footer">
+        <div class="ccard-outputs">
+          <span class="out-badge" style="color:var(--android)">Android Banner 320×180</span>
+          <span class="out-badge" style="color:var(--android)">Splash 1920×1080</span>
+          <span class="out-badge" style="color:var(--roku)">Roku Splash 1920×1080</span>
+        </div>
+        <button class="edit-btn" onclick="openEditor('wide16')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
+          Edit
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── 03 PLATFORMS ── -->
+  <div class="section-hd">
+    <span class="section-num">03</span>
+    <span class="section-name">Select Target Platforms</span>
+    <div class="section-rule"></div>
+  </div>
+
+  <div class="platform-grid">
+    <div class="pcard android selected" id="pcard-android" onclick="togglePlatform('android')">
+      <div class="pcard-header">
+        <div class="pcard-brand"><div class="pcard-icon">🤖</div><div><div class="pcard-name">Android / Fire TV</div><div class="pcard-sub">5 PNG files in Android-Fire/ folder</div></div></div>
+        <div class="pcard-check"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="2,6 5,9 10,3"/></svg></div>
+      </div>
+      <div class="pcard-specs">
+        <div class="pspec-row"><span class="pspec-label">App Icon</span><span class="pspec-dim">512×512 · bg + logo · square composer</span></div>
+        <div class="pspec-row"><span class="pspec-label">App Logo Menu Close</span><span class="pspec-dim">256×256 · logo only (no bg) · transparent</span></div>
+        <div class="pspec-row"><span class="pspec-label">App Logo Menu Open</span><span class="pspec-dim">256×144 · logo only (no bg) · transparent</span></div>
+        <div class="pspec-row"><span class="pspec-label">App Banner</span><span class="pspec-dim">320×180 · bg + logo · 16:9 composer</span></div>
+        <div class="pspec-row"><span class="pspec-label">Splash Screen</span><span class="pspec-dim">1920×1080 · bg + logo · composited</span></div>
+      </div>
+    </div>
+    <div class="pcard roku selected" id="pcard-roku" onclick="togglePlatform('roku')">
+      <div class="pcard-header">
+        <div class="pcard-brand"><div class="pcard-icon">📺</div><div><div class="pcard-name">Roku</div><div class="pcard-sub">4 PNG files in Roku/ folder</div></div></div>
+        <div class="pcard-check"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="2,6 5,9 10,3"/></svg></div>
+      </div>
+      <div class="pcard-specs">
+        <div class="pspec-row"><span class="pspec-label">App Icon</span><span class="pspec-dim">540×405 · bg + logo · square composer (4:3 crop)</span></div>
+        <div class="pspec-row"><span class="pspec-label">App Logo Menu Close</span><span class="pspec-dim">1080×1080 · logo only (no bg) · transparent</span></div>
+        <div class="pspec-row"><span class="pspec-label">App Logo Menu Open</span><span class="pspec-dim">1920×1080 · logo only (no bg) · transparent</span></div>
+        <div class="pspec-row"><span class="pspec-label">Splash Screen</span><span class="pspec-dim">1920×1080 · bg + logo · composited</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 04 FILE TREE ── -->
+  <div class="section-hd">
+    <span class="section-num">04</span>
+    <span class="section-name">Output File Structure</span>
+    <div class="section-rule"></div>
+  </div>
+  <div>
+    <div class="tree-tabs">
+      <div class="tree-tab android active" onclick="switchTab('android')">🤖 Android / Fire TV</div>
+      <div class="tree-tab roku" onclick="switchTab('roku')">📺 Roku</div>
+    </div>
+    <div class="tree-wrap">
+      <div class="tree-pane active" id="tab-android">
+        <div class="tree-row"><span class="t-dir">Android-Fire/</span></div>
+        <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-android">app-icon-512x512.png</span><span class="t-pipe"> ← 512×512 · bg + logo · square composer</span></div>
+        <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-android">app-logo-menu-close-256x256.png</span><span class="t-pipe"> ← 256×256 · logo only (transparent, no bg)</span></div>
+        <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-android">app-logo-menu-open-256x144.png</span><span class="t-pipe"> ← 256×144 · logo only (transparent, no bg)</span></div>
+        <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-android">app-banner-320x180.png</span><span class="t-pipe"> ← 320×180 · bg + logo · 16:9 composer</span></div>
+        <div class="tree-row"><span class="t-pipe">└── </span><span class="t-file t-android">splash-1920x1080.png</span><span class="t-pipe"> ← 1920×1080 · bg + logo · composited</span></div>
+      </div>
+      <div class="tree-pane" id="tab-roku">
+        <div class="tree-row"><span class="t-dir">Roku/</span></div>
+        <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-roku">app-icon-540x405.png</span><span class="t-pipe"> ← 540×405 · bg + logo · square composer (4:3 crop)</span></div>
+        <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-roku">app-logo-menu-close-1080x1080.png</span><span class="t-pipe"> ← 1080×1080 · logo only (transparent, no bg)</span></div>
+        <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-roku">app-logo-menu-open-1920x1080.png</span><span class="t-pipe"> ← 1920×1080 · logo only (transparent, no bg)</span></div>
+        <div class="tree-row"><span class="t-pipe">└── </span><span class="t-file t-roku">splash-1920x1080.png</span><span class="t-pipe"> ← 1920×1080 · bg + logo · composited</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 05 EXPORT ── -->
+  <div class="section-hd">
+    <span class="section-num">05</span>
+    <span class="section-name">Export</span>
+    <div class="section-rule"></div>
+  </div>
+
+  <div class="export-panel">
+    <div class="export-info">
+      <h3>Export CTV Asset Package</h3>
+      <div class="filename-row">
+        <input id="assetName" type="text" class="name-input" placeholder="MyApp" value="MyApp" oninput="updateFilenamePreview()" onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor='var(--border-default)'">
+        <span class="name-suffix">-ctv-assets.zip</span>
+      </div>
+      <p style="font-size:12px;color:var(--text-400);">Downloads as <code id="filenamePreview" style="font-family:var(--font-mono);font-size:11px;color:var(--amber);">MyApp-ctv-assets.zip</code></p>
+      <div class="readiness">
+        <div class="rcheck" id="rc-bg"><div class="rcheck-dot"></div><span>Background ✱</span></div>
+        <div class="rcheck" id="rc-logo1x1"><div class="rcheck-dot"></div><span>1:1 Logo (no BG) ✱</span></div>
+        <div class="rcheck" id="rc-logo16t"><div class="rcheck-dot"></div><span>16:9 Logo (No BG)</span></div>
+        <div class="rcheck" id="rc-splash"><div class="rcheck-dot"></div><span>Splash Screen</span></div>
+      </div>
+      <p style="font-family:var(--font-mono);font-size:10px;color:var(--text-400);margin-top:8px;">✱ both required · select at least one platform</p>
+    </div>
+    <button class="export-btn" id="exportBtn" onclick="runExport()" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+      Export Selected Platforms
+    </button>
+  </div>
+
+  <div class="log-panel" id="logPanel"></div>
+
+</main>
+
+<!-- EDITOR MODAL (shared for both composers) -->
+<div class="editor-overlay" id="editorOverlay">
+  <div class="editor-panel">
+    <div class="editor-head">
+      <div class="editor-head-left">
+        <h3 id="editorTitle">Composer</h3>
+        <span class="editor-badge" id="editorBadge">outputs</span>
+      </div>
+      <button class="editor-close" onclick="closeEditor()">✕</button>
+    </div>
+    <div class="editor-preview">
+      <div class="editor-canvas-bg"><canvas id="editorCanvas"></canvas></div>
+    </div>
+    <div class="editor-controls">
+      <div class="ctrl-section-label">Background</div>
+      <div class="ctrl-grp">
+        <div class="ctrl-top"><span>⤡ Zoom</span><span class="ctrl-val" id="lbl-bg-scale">100%</span></div>
+        <input type="range" class="ctrl-slider" id="sl-bg-scale" min="50" max="300" step="1" value="100" oninput="onEditorSlider()">
+      </div>
+      <div class="ctrl-grp">
+        <div class="ctrl-top"><span>← → Move X</span><span class="ctrl-val" id="lbl-bg-x">0 px</span></div>
+        <input type="range" class="ctrl-slider" id="sl-bg-x" min="-800" max="800" step="1" value="0" oninput="onEditorSlider()">
+      </div>
+      <div class="ctrl-grp">
+        <div class="ctrl-top"><span>↑ ↓ Move Y</span><span class="ctrl-val" id="lbl-bg-y">0 px</span></div>
+        <input type="range" class="ctrl-slider" id="sl-bg-y" min="-500" max="500" step="1" value="0" oninput="onEditorSlider()">
+      </div>
+      <div class="ctrl-section-label">Logo</div>
+      <div class="ctrl-grp">
+        <div class="ctrl-top"><span>⤡ Size</span><span class="ctrl-val" id="lbl-scale">80%</span></div>
+        <input type="range" class="ctrl-slider" id="sl-scale" min="10" max="200" step="1" value="80" oninput="onEditorSlider()">
+      </div>
+      <div class="ctrl-grp">
+        <div class="ctrl-top"><span>← → Move X</span><span class="ctrl-val" id="lbl-x">0 px</span></div>
+        <input type="range" class="ctrl-slider" id="sl-x" min="-500" max="500" step="1" value="0" oninput="onEditorSlider()">
+      </div>
+      <div class="ctrl-grp">
+        <div class="ctrl-top"><span>↑ ↓ Move Y</span><span class="ctrl-val" id="lbl-y">0 px</span></div>
+        <input type="range" class="ctrl-slider" id="sl-y" min="-300" max="300" step="1" value="0" oninput="onEditorSlider()">
+      </div>
+    </div>
+    <div class="editor-footer">
+      <button class="editor-reset" onclick="resetEditor()">↺ Reset</button>
+      <button class="editor-done" onclick="closeEditor()">✓ Done — Apply to Export</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+const state = {
+  images: { bg: null, logo16t: null, logo1x1: null, splash: null },
+  platforms: { android: true, roku: true },
+  composers: {
+    square: { bgScale: 100, bgOffsetX: 0, bgOffsetY: 0, scale: 80, offsetX: 0, offsetY: 0 },
+    wide16: { bgScale: 100, bgOffsetX: 0, bgOffsetY: 0, scale: 80, offsetX: 0, offsetY: 0 }
+  },
+  activeEditor: null
+};
+
+const SPECS = {
+  bg:      { any: true },
+  logo16t: { ratioW: 16, ratioH: 9, tolerance: 0.15 },
+  logo1x1: { ratioW: 1,  ratioH: 1, tolerance: 0.08 },
+  splash:  { any: true }
+};
+
+// ═══════════════════════════════════════════
+//  CANVAS UTILITIES
+// ═══════════════════════════════════════════
+function makeCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+function dims(img) {
+  if (img instanceof HTMLCanvasElement) return { w: img.width, h: img.height };
+  return { w: img.naturalWidth || img.width, h: img.naturalHeight || img.height };
+}
+function stepDown(src, tw, th) {
+  let cur = src; let { w, h } = dims(src);
+  while (w > tw * 2 || h > th * 2) {
+    const nw = Math.max(Math.ceil(w / 2), tw), nh = Math.max(Math.ceil(h / 2), th);
+    const nx = makeCanvas(nw, nh), ctx = nx.getContext('2d');
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(cur, 0, 0, nw, nh);
+    cur = nx; w = nw; h = nh;
+  }
+  const f = makeCanvas(tw, th), ctx = f.getContext('2d');
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(cur, 0, 0, tw, th);
+  return f;
+}
+function resize(src, tw, th, mode = 'cover') {
+  const { w: sw, h: sh } = dims(src);
+  if (mode === 'cover') {
+    const sc = Math.max(tw / sw, th / sh);
+    const cw = tw / sc, ch = th / sc, cx = (sw - cw) / 2, cy = (sh - ch) / 2;
+    const cr = makeCanvas(Math.round(cw), Math.round(ch)), cctx = cr.getContext('2d');
+    cctx.imageSmoothingEnabled = true; cctx.imageSmoothingQuality = 'high';
+    cctx.drawImage(src, cx, cy, cw, ch, 0, 0, Math.round(cw), Math.round(ch));
+    return stepDown(cr, tw, th);
+  }
+  return stepDown(src, tw, th);
+}
+function toBlob(canvas) { return new Promise(res => canvas.toBlob(res, 'image/png')); }
+// Fit logo within bounds, centered, fully transparent background (no crop)
+function resizeFit(src, tw, th) {
+  const { w: sw, h: sh } = dims(src);
+  const sc = Math.min(tw / sw, th / sh);
+  const dw = Math.round(sw * sc), dh = Math.round(sh * sc);
+  const c = makeCanvas(tw, th), ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(src, (tw - dw) / 2, (th - dh) / 2, dw, dh);
+  return c;
+}
+
+// ═══════════════════════════════════════════
+//  COMPOSITE RENDERER
+//  bg (cover-filled) + logo1x1 (scaled + positioned)
+// ═══════════════════════════════════════════
+function renderComposite(targetW, targetH, composerKey) {
+  const { bg, logo16t, logo1x1 } = state.images;
+  // wide16 composer uses transparent 16:9 logo; square uses 1:1 logo
+  const logoSrc = composerKey === 'wide16' ? (logo16t || logo1x1) : logo1x1;
+  const s = state.composers[composerKey];
+  const c = makeCanvas(targetW, targetH), ctx = c.getContext('2d');
+
+  ctx.fillStyle = '#0A0C14'; ctx.fillRect(0, 0, targetW, targetH);
+  if (bg) {
+    const { w: bw, h: bh } = dims(bg);
+    const coverSc = Math.max(targetW / bw, targetH / bh) * (s.bgScale / 100);
+    const bdw = bw * coverSc, bdh = bh * coverSc;
+    const box = s.bgOffsetX * (targetW / 960), boy = s.bgOffsetY * (targetH / 540);
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(bg, (targetW - bdw) / 2 + box, (targetH - bdh) / 2 + boy, bdw, bdh);
+  }
+  if (logoSrc) {
+    const { w: lw, h: lh } = dims(logoSrc);
+    const baseScale = Math.min(targetW / lw, targetH / lh) * (s.scale / 100);
+    const dw = lw * baseScale, dh = lh * baseScale;
+    const ox = s.offsetX * (targetW / 960), oy = s.offsetY * (targetH / 540);
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(logoSrc, (targetW - dw) / 2 + ox, (targetH - dh) / 2 + oy, dw, dh);
+  }
+  return c;
+}
+
+// App Icon / App Banner → bg + logo composited
+function get16x9(tw, th) {
+  if (state.images.bg && (state.images.logo16t || state.images.logo1x1)) return renderComposite(tw, th, 'wide16');
+  return makeCanvas(tw, th);
+}
+function getSquare(tw, th) { return renderComposite(tw, th, 'square'); }
+
+// Splash → splash input override OR composited bg + logo at 16:9
+function getSplash(tw, th) {
+  if (state.images.splash) return resize(state.images.splash, tw, th, 'cover');
+  return renderComposite(tw, th, 'wide16');
+}
+
+// Menu Close → 1:1 logo transparent only (no bg), fitted
+function getMenuClose(tw, th) {
+  const src = state.images.logo1x1;
+  if (src) return resizeFit(src, tw, th);
+  return makeCanvas(tw, th);
+}
+
+// Menu Open → 16:9 logo transparent only (no bg), fitted
+function getMenuOpen(tw, th) {
+  const src = state.images.logo16t || state.images.logo1x1;
+  if (src) return resizeFit(src, tw, th);
+  return makeCanvas(tw, th);
+}
+
+// ═══════════════════════════════════════════
+//  DRAG & DROP
+// ═══════════════════════════════════════════
+document.querySelectorAll('.drop-zone').forEach(dz => {
+  const card = dz.closest('.ucard'), type = card.dataset.type;
+  dz.addEventListener('click', () => document.getElementById('fi-' + type).click());
+  dz.addEventListener('dragover', e => { e.preventDefault(); card.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => card.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => { e.preventDefault(); card.classList.remove('drag-over'); const f = e.dataTransfer.files[0]; if (f) ingestFile(f, type); });
+});
+
+// ═══════════════════════════════════════════
+//  FILE HANDLING
+// ═══════════════════════════════════════════
+function handleFile(evt, type) { const f = evt.target.files[0]; if (f) ingestFile(f, type); }
+function ingestFile(file, type) {
+  if (!file.type.startsWith('image/')) { setValidation(type, 'err', '✕  Not an image file.'); return; }
+  loadImg(file).then(img => {
+    state.images[type] = img;
+    document.getElementById('pimg-' + type).src = img.src;
+    document.getElementById('pdims-' + type).textContent = `${img.naturalWidth} × ${img.naturalHeight}`;
+    const v = validate(type, img);
+    const card = document.getElementById('ucard-' + type);
+    card.classList.remove('state-uploaded','state-warn');
+    card.classList.add(v.pass ? 'state-uploaded' : 'state-warn');
+    setValidation(type, v.level, v.msg);
+    updateReadiness();
+    updateComposerPreviews();
+    log('ok', `Loaded: ${img.naturalWidth}×${img.naturalHeight}`);
+  }).catch(() => setValidation(type, 'err', '✕  Failed to read image.'));
+}
+function loadImg(file) {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = e => { const img = new Image(); img.onload = () => res(img); img.onerror = rej; img.src = e.target.result; };
+    fr.onerror = rej; fr.readAsDataURL(file);
+  });
+}
+function validate(type, img) {
+  const w = img.naturalWidth, h = img.naturalHeight, spec = SPECS[type];
+  if (spec.ratioW) {
+    const exp = spec.ratioW / spec.ratioH, act = w / h;
+    if (Math.abs(act - exp) <= spec.tolerance) return { pass: true, level: 'ok', msg: `✓  ${w}×${h} — aspect ratio correct` };
+    return { pass: false, level: 'warn', msg: `⚠  Expected ${spec.ratioW}:${spec.ratioH}, got ${act.toFixed(2)}:1 — will be cover-cropped.` };
+  }
+  return { pass: true, level: 'ok', msg: `✓  ${w}×${h}` };
+}
+function setValidation(type, level, msg) {
+  const el = document.getElementById('val-' + type);
+  el.className = 'val-bar show ' + level; el.textContent = msg;
+}
+
+// ═══════════════════════════════════════════
+//  READINESS + PREVIEWS
+// ═══════════════════════════════════════════
+function updateReadiness() {
+  const imgs = state.images;
+  ['bg','logo16t','logo1x1','splash'].forEach(t => {
+    const rc = document.getElementById('rc-' + t);
+    if (rc) { if (imgs[t]) rc.classList.add('ready'); else rc.classList.remove('ready'); }
+  });
+  const anyPlatform = Object.values(state.platforms).some(v => v);
+  const hasLogo = !!(imgs.logo16t || imgs.logo1x1);
+  document.getElementById('exportBtn').disabled = !(imgs.bg && hasLogo && anyPlatform);
+}
+function updateComposerPreviews() {
+  renderCprev('cprev-square', 'square', 1, 1);
+  renderCprev('cprev-wide16', 'wide16', 16, 9);
+}
+function renderCprev(elId, composerKey, rw, rh) {
+  const { bg, logo16t, logo1x1 } = state.images;
+  const hasContent = composerKey === 'wide16' ? (bg && (logo16t || logo1x1)) : (bg && logo1x1);
+  if (!hasContent) return;
+  const el = document.getElementById(elId);
+  const W = el.clientWidth || 400;
+  const H = Math.min(Math.round(W * rh / rw), 130);
+  el.style.height = H + 'px';
+  el.innerHTML = '';
+  const c = renderComposite(W, H, composerKey);
+  c.style.cssText = 'width:100%;height:100%;display:block;';
+  el.appendChild(c);
+}
+function updateFilenamePreview() {
+  const name = document.getElementById('assetName').value.trim() || 'MyApp';
+  document.getElementById('filenamePreview').textContent = `${name}-ctv-assets.zip`;
+}
+function togglePlatform(p) {
+  state.platforms[p] = !state.platforms[p];
+  document.getElementById('pcard-' + p).classList.toggle('selected', state.platforms[p]);
+  updateReadiness();
+}
+function switchTab(name) {
+  document.querySelectorAll('.tree-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tree-pane').forEach(p => p.classList.remove('active'));
+  document.querySelector('.tree-tab.' + name).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ═══════════════════════════════════════════
+//  EDITOR MODAL
+// ═══════════════════════════════════════════
+const EDITOR_CFG = {
+  square: { title: 'Square Composer · 1:1', badge: 'Drives all square icon outputs', cw: 560, ch: 560 },
+  wide16: { title: 'Widescreen Composer · 16:9', badge: 'Drives App Banner + Splash outputs', cw: 800, ch: 450 }
+};
+function openEditor(key) {
+  const { bg, logo16t, logo1x1 } = state.images;
+  const hasContent = key === 'wide16' ? (bg && (logo16t || logo1x1)) : (bg && logo1x1);
+  if (!hasContent) {
+    alert(key === 'wide16'
+      ? 'Upload Background + 16:9 Logo (or 1:1 Logo) first.'
+      : 'Upload Background + 1:1 Logo first.');
+    return;
+  }
+  state.activeEditor = key;
+  const cfg = EDITOR_CFG[key];
+  document.getElementById('editorTitle').textContent = cfg.title;
+  document.getElementById('editorBadge').textContent = cfg.badge;
+  const canvas = document.getElementById('editorCanvas');
+  canvas.width = cfg.cw; canvas.height = cfg.ch;
+  const s = state.composers[key];
+  document.getElementById('sl-bg-scale').value = s.bgScale;
+  document.getElementById('sl-bg-x').value = s.bgOffsetX;
+  document.getElementById('sl-bg-y').value = s.bgOffsetY;
+  document.getElementById('lbl-bg-scale').textContent = s.bgScale + '%';
+  document.getElementById('lbl-bg-x').textContent = s.bgOffsetX + ' px';
+  document.getElementById('lbl-bg-y').textContent = s.bgOffsetY + ' px';
+  document.getElementById('sl-scale').value = s.scale;
+  document.getElementById('sl-x').value = s.offsetX;
+  document.getElementById('sl-y').value = s.offsetY;
+  document.getElementById('lbl-scale').textContent = s.scale + '%';
+  document.getElementById('lbl-x').textContent = s.offsetX + ' px';
+  document.getElementById('lbl-y').textContent = s.offsetY + ' px';
+  document.getElementById('editorOverlay').classList.add('open');
+  drawEditorCanvas();
+}
+function closeEditor() {
+  document.getElementById('editorOverlay').classList.remove('open');
+  updateComposerPreviews();
+}
+function drawEditorCanvas() {
+  const key = state.activeEditor; if (!key) return;
+  const canvas = document.getElementById('editorCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(renderComposite(canvas.width, canvas.height, key), 0, 0);
+}
+function onEditorSlider() {
+  const key = state.activeEditor; if (!key) return;
+  const s = state.composers[key];
+  s.bgScale   = parseInt(document.getElementById('sl-bg-scale').value);
+  s.bgOffsetX = parseInt(document.getElementById('sl-bg-x').value);
+  s.bgOffsetY = parseInt(document.getElementById('sl-bg-y').value);
+  document.getElementById('lbl-bg-scale').textContent = s.bgScale + '%';
+  document.getElementById('lbl-bg-x').textContent = s.bgOffsetX + ' px';
+  document.getElementById('lbl-bg-y').textContent = s.bgOffsetY + ' px';
+  s.scale   = parseInt(document.getElementById('sl-scale').value);
+  s.offsetX = parseInt(document.getElementById('sl-x').value);
+  s.offsetY = parseInt(document.getElementById('sl-y').value);
+  document.getElementById('lbl-scale').textContent = s.scale + '%';
+  document.getElementById('lbl-x').textContent = s.offsetX + ' px';
+  document.getElementById('lbl-y').textContent = s.offsetY + ' px';
+  drawEditorCanvas();
+}
+function resetEditor() {
+  const key = state.activeEditor; if (!key) return;
+  state.composers[key] = { bgScale: 100, bgOffsetX: 0, bgOffsetY: 0, scale: 80, offsetX: 0, offsetY: 0 };
+  document.getElementById('sl-bg-scale').value = 100;
+  document.getElementById('sl-bg-x').value = 0;
+  document.getElementById('sl-bg-y').value = 0;
+  document.getElementById('lbl-bg-scale').textContent = '100%';
+  document.getElementById('lbl-bg-x').textContent = '0 px';
+  document.getElementById('lbl-bg-y').textContent = '0 px';
+  document.getElementById('sl-scale').value = 80;
+  document.getElementById('sl-x').value = 0;
+  document.getElementById('sl-y').value = 0;
+  document.getElementById('lbl-scale').textContent = '80%';
+  document.getElementById('lbl-x').textContent = '0 px';
+  document.getElementById('lbl-y').textContent = '0 px';
+  drawEditorCanvas();
+}
+
+// ═══════════════════════════════════════════
+//  LOG
+// ═══════════════════════════════════════════
+function log(type, msg) {
+  const panel = document.getElementById('logPanel');
+  panel.classList.add('show');
+  const t = new Date().toTimeString().slice(0, 8);
+  const row = document.createElement('div');
+  row.className = 'log-row ' + type;
+  row.innerHTML = `<span class="log-t">${t}</span><span class="log-m">${msg}</span>`;
+  panel.appendChild(row); panel.scrollTop = panel.scrollHeight;
+}
+
+// ═══════════════════════════════════════════
+//  EXPORT — ANDROID / FIRE TV
+// ═══════════════════════════════════════════
+async function exportAndroid(zip, imgs) {
+  log('proc', '  ── 🤖 Android / Fire TV ──');
+  const dir = zip.folder('Android-Fire');
+
+  // App Icon — bg + logo composited (square)
+  log('proc', '  ⟳  App icon 512×512 (bg + logo)…');
+  dir.file('app-icon-512x512.png', await toBlob(getSquare(512, 512)));
+  log('ok', '  ✓  app-icon 512×512');
+
+  // Menu Close — logo only, transparent
+  log('proc', '  ⟳  Menu close 256×256 (logo only, no bg)…');
+  dir.file('app-logo-menu-close-256x256.png', await toBlob(getMenuClose(256, 256)));
+  log('ok', '  ✓  menu-close 256×256');
+
+  // Menu Open — logo only, transparent
+  log('proc', '  ⟳  Menu open 256×144 (logo only, no bg)…');
+  dir.file('app-logo-menu-open-256x144.png', await toBlob(getMenuOpen(256, 144)));
+  log('ok', '  ✓  menu-open 256×144');
+
+  // App Banner — bg + logo composited (16:9)
+  log('proc', '  ⟳  App banner 320×180 (bg + logo)…');
+  dir.file('app-banner-320x180.png', await toBlob(get16x9(320, 180)));
+  log('ok', '  ✓  banner 320×180');
+
+  // Splash — bg + logo composited (or splash override)
+  log('proc', '  ⟳  Splash 1920×1080 (bg + logo)…');
+  dir.file('splash-1920x1080.png', await toBlob(getSplash(1920, 1080)));
+  log('ok', '  ✓  splash 1920×1080');
+
+  log('ok', '  ✓  Android / Fire TV complete');
+}
+
+// ═══════════════════════════════════════════
+//  EXPORT — ROKU
+// ═══════════════════════════════════════════
+async function exportRoku(zip, imgs) {
+  log('proc', '  ── 📺 Roku ──');
+  const dir = zip.folder('Roku');
+
+  // App Icon — bg + logo composited, 4:3 cover-crop from square composer
+  log('proc', '  ⟳  App icon 540×405 (bg + logo, 4:3)…');
+  dir.file('app-icon-540x405.png', await toBlob(getSquare(540, 405)));
+  log('ok', '  ✓  app-icon 540×405');
+
+  // Menu Close — logo only, transparent
+  log('proc', '  ⟳  Menu close 1080×1080 (logo only, no bg)…');
+  dir.file('app-logo-menu-close-1080x1080.png', await toBlob(getMenuClose(1080, 1080)));
+  log('ok', '  ✓  menu-close 1080×1080');
+
+  // Menu Open — logo only, transparent
+  log('proc', '  ⟳  Menu open 1920×1080 (logo only, no bg)…');
+  dir.file('app-logo-menu-open-1920x1080.png', await toBlob(getMenuOpen(1920, 1080)));
+  log('ok', '  ✓  menu-open 1920×1080');
+
+  // Splash — bg + logo composited (or splash override)
+  log('proc', '  ⟳  Splash 1920×1080 (bg + logo)…');
+  dir.file('splash-1920x1080.png', await toBlob(getSplash(1920, 1080)));
+  log('ok', '  ✓  splash 1920×1080');
+
+  log('ok', '  ✓  Roku complete');
+}
+
+// ═══════════════════════════════════════════
+//  MAIN EXPORT
+// ═══════════════════════════════════════════
+async function runExport() {
+  if (typeof JSZip === 'undefined') { log('err', '✕  JSZip not loaded.'); return; }
+  const btn = document.getElementById('exportBtn');
+  btn.disabled = true; btn.classList.add('processing');
+  btn.innerHTML = `<svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Processing…`;
+  log('proc', '▶  Starting CTV asset generation…');
+  try {
+    const zip = new JSZip(), imgs = state.images;
+    if (state.platforms.android) await exportAndroid(zip, imgs);
+    if (state.platforms.roku)    await exportRoku(zip, imgs);
+    log('proc', '  ⟳  Packaging ZIP…');
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+    const name = (document.getElementById('assetName').value.trim() || 'MyApp');
+    const zipName = `${name}-ctv-assets.zip`;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = zipName;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    log('ok', `✓  Downloaded: ${zipName} (${(blob.size / 1024).toFixed(0)} KB)`);
+  } catch (err) {
+    log('err', `✕  ${err.message}`); console.error(err);
+  } finally {
+    btn.disabled = false; btn.classList.remove('processing');
+    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg> Export Selected Platforms`;
+    updateReadiness();
+  }
+}
+</script>
+</body>
+</html>
