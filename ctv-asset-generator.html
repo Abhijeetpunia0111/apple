@@ -234,10 +234,11 @@
   <div class="hero">
     <div class="hero-eyebrow">Connected TV · Android / Fire TV / Roku</div>
     <h1>Generate <em>CTV Assets</em><br>For Android &amp; Roku</h1>
-    <p class="hero-sub">Upload 4 source files. Use the live composers to position your logo at each ratio. Export a complete ZIP with all icons, menu logos, banners, and splash screens.</p>
+    <p class="hero-sub">Upload 4 source files. Use the live composers to position your logo. Export one ZIP with all 12 files — Android/Fire TV + Roku — in a single flat folder.</p>
     <div class="hero-tags">
       <span class="tag">Android / Amazon Fire TV</span>
       <span class="tag">Roku</span>
+      <span class="tag">12 Files · 1 ZIP</span>
       <span class="tag">1:1 Square Composer</span>
       <span class="tag">16:9 Widescreen Composer</span>
       <span class="tag">No Backend</span>
@@ -400,74 +401,31 @@
 
   </div>
 
-  <!-- ── 03 PLATFORMS ── -->
+  <!-- ── 03 OUTPUT FILES ── -->
   <div class="section-hd">
     <span class="section-num">03</span>
-    <span class="section-name">Select Target Platforms</span>
-    <div class="section-rule"></div>
-  </div>
-
-  <div class="platform-grid">
-    <div class="pcard android selected" id="pcard-android" onclick="togglePlatform('android')">
-      <div class="pcard-header">
-        <div class="pcard-brand"><div class="pcard-icon">🤖</div><div><div class="pcard-name">Android / Fire TV</div><div class="pcard-sub">5 PNG files in Android-Fire/ folder</div></div></div>
-        <div class="pcard-check"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="2,6 5,9 10,3"/></svg></div>
-      </div>
-      <div class="pcard-specs">
-        <div class="pspec-row"><span class="pspec-label">App Icon</span><span class="pspec-dim">512×512 · bg + logo · square composer</span></div>
-        <div class="pspec-row"><span class="pspec-label">App Logo Menu Close</span><span class="pspec-dim">256×256 · logo only (no bg) · transparent</span></div>
-        <div class="pspec-row"><span class="pspec-label">App Logo Menu Open</span><span class="pspec-dim">256×144 · logo only (no bg) · transparent</span></div>
-        <div class="pspec-row"><span class="pspec-label">App Banner</span><span class="pspec-dim">320×180 · bg + logo · 16:9 composer</span></div>
-        <div class="pspec-row"><span class="pspec-label">Splash Screen</span><span class="pspec-dim">1920×1080 · bg + logo · composited</span></div>
-      </div>
-    </div>
-    <div class="pcard roku selected" id="pcard-roku" onclick="togglePlatform('roku')">
-      <div class="pcard-header">
-        <div class="pcard-brand"><div class="pcard-icon">📺</div><div><div class="pcard-name">Roku</div><div class="pcard-sub">4 PNG files in Roku/ folder</div></div></div>
-        <div class="pcard-check"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="2,6 5,9 10,3"/></svg></div>
-      </div>
-      <div class="pcard-specs">
-        <div class="pspec-row"><span class="pspec-label">App Icon</span><span class="pspec-dim">540×405 · bg + logo · square composer (4:3 crop)</span></div>
-        <div class="pspec-row"><span class="pspec-label">App Logo Menu Close</span><span class="pspec-dim">1080×1080 · logo only (no bg) · transparent</span></div>
-        <div class="pspec-row"><span class="pspec-label">App Logo Menu Open</span><span class="pspec-dim">1920×1080 · logo only (no bg) · transparent</span></div>
-        <div class="pspec-row"><span class="pspec-label">Splash Screen</span><span class="pspec-dim">1920×1080 · bg + logo · composited</span></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── 04 FILE TREE ── -->
-  <div class="section-hd">
-    <span class="section-num">04</span>
     <span class="section-name">Output File Structure</span>
     <div class="section-rule"></div>
   </div>
-  <div>
-    <div class="tree-tabs">
-      <div class="tree-tab android active" onclick="switchTab('android')">🤖 Android / Fire TV</div>
-      <div class="tree-tab roku" onclick="switchTab('roku')">📺 Roku</div>
-    </div>
-    <div class="tree-wrap">
-      <div class="tree-pane active" id="tab-android">
-        <div class="tree-row"><span class="t-dir">Android-Fire/</span></div>
-        <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-android">app-icon-512x512.png</span><span class="t-pipe"> ← 512×512 · bg + logo · square composer</span></div>
-        <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-android">app-logo-menu-close-256x256.png</span><span class="t-pipe"> ← 256×256 · logo only (transparent, no bg)</span></div>
-        <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-android">app-logo-menu-open-256x144.png</span><span class="t-pipe"> ← 256×144 · logo only (transparent, no bg)</span></div>
-        <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-android">app-banner-320x180.png</span><span class="t-pipe"> ← 320×180 · bg + logo · 16:9 composer</span></div>
-        <div class="tree-row"><span class="t-pipe">└── </span><span class="t-file t-android">splash-1920x1080.png</span><span class="t-pipe"> ← 1920×1080 · bg + logo · composited</span></div>
-      </div>
-      <div class="tree-pane" id="tab-roku">
-        <div class="tree-row"><span class="t-dir">Roku/</span></div>
-        <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-roku">app-icon-540x405.png</span><span class="t-pipe"> ← 540×405 · bg + logo · square composer (4:3 crop)</span></div>
-        <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-roku">app-logo-menu-close-1080x1080.png</span><span class="t-pipe"> ← 1080×1080 · logo only (transparent, no bg)</span></div>
-        <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-roku">app-logo-menu-open-1920x1080.png</span><span class="t-pipe"> ← 1920×1080 · logo only (transparent, no bg)</span></div>
-        <div class="tree-row"><span class="t-pipe">└── </span><span class="t-file t-roku">splash-1920x1080.png</span><span class="t-pipe"> ← 1920×1080 · bg + logo · composited</span></div>
-      </div>
-    </div>
+  <div class="tree-wrap" style="border-radius:var(--r);margin-bottom:44px">
+    <div class="tree-row"><span class="t-dir">{name} new.zip &nbsp;·&nbsp; 12 files · flat · no subfolders · Android / Fire TV + Roku</span></div>
+    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-android">Android_App_Icon_512x512_{name} 2.png</span><span class="t-pipe"> ← 512×512 · bg+logo</span></div>
+    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-android">Android_App_Menu_Closed_256x256_{name} 1.png</span><span class="t-pipe"> ← 256×256 · bg+logo</span></div>
+    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-android">Android_App_Menu_Closed_256x256_{name} 2.png</span><span class="t-pipe"> ← 256×256 · logo only (transparent)</span></div>
+    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-android">Android_App_Menu_Open_256x144_{name} 2.png</span><span class="t-pipe"> ← 256×144 · logo only (transparent)</span></div>
+    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-android">App_Banner_320x180_{name} 1.png</span><span class="t-pipe"> ← 320×180 · bg+logo</span></div>
+    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-roku">App_Icon_{name}.png</span><span class="t-pipe"> ← 540×405 · bg+logo (4:3 crop)</span></div>
+    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-roku">Android_App_Menu_Closed_1080x1080_{name} 1.png</span><span class="t-pipe"> ← 1080×1080 · bg+logo</span></div>
+    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-roku">Android_App_Menu_Closed_1080x1080_{name} 2.png</span><span class="t-pipe"> ← 1080×1080 · logo only (transparent)</span></div>
+    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-roku">Android_App_Menu_Open_1920x1080_{name} 1.png</span><span class="t-pipe"> ← 1920×1080 · logo only (transparent)</span></div>
+    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-roku">App_Logo_Menu_Closed_{name}.png</span><span class="t-pipe"> ← native res · 1:1 logo as-uploaded</span></div>
+    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-roku">App_Logo_Menu_Open_{name}.png</span><span class="t-pipe"> ← native res · 16:9 logo as-uploaded</span></div>
+    <div class="tree-row"><span class="t-pipe">└── </span><span class="t-file" style="color:var(--amber)">{name}-Splash.png</span><span class="t-pipe"> ← 1920×1080 · bg+logo</span></div>
   </div>
 
-  <!-- ── 05 EXPORT ── -->
+  <!-- ── 04 EXPORT ── -->
   <div class="section-hd">
-    <span class="section-num">05</span>
+    <span class="section-num">04</span>
     <span class="section-name">Export</span>
     <div class="section-rule"></div>
   </div>
@@ -477,20 +435,20 @@
       <h3>Export CTV Asset Package</h3>
       <div class="filename-row">
         <input id="assetName" type="text" class="name-input" placeholder="MyApp" value="MyApp" oninput="updateFilenamePreview()" onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor='var(--border-default)'">
-        <span class="name-suffix">-ctv-assets.zip</span>
+        <span class="name-suffix"> new.zip</span>
       </div>
-      <p style="font-size:12px;color:var(--text-400);">Downloads as <code id="filenamePreview" style="font-family:var(--font-mono);font-size:11px;color:var(--amber);">MyApp-ctv-assets.zip</code></p>
+      <p style="font-size:12px;color:var(--text-400);">Downloads as <code id="filenamePreview" style="font-family:var(--font-mono);font-size:11px;color:var(--amber);">MyApp new.zip</code></p>
       <div class="readiness">
         <div class="rcheck" id="rc-bg"><div class="rcheck-dot"></div><span>Background ✱</span></div>
         <div class="rcheck" id="rc-logo1x1"><div class="rcheck-dot"></div><span>1:1 Logo (no BG) ✱</span></div>
         <div class="rcheck" id="rc-logo16t"><div class="rcheck-dot"></div><span>16:9 Logo (No BG)</span></div>
         <div class="rcheck" id="rc-splash"><div class="rcheck-dot"></div><span>Splash Screen</span></div>
       </div>
-      <p style="font-family:var(--font-mono);font-size:10px;color:var(--text-400);margin-top:8px;">✱ both required · select at least one platform</p>
+      <p style="font-family:var(--font-mono);font-size:10px;color:var(--text-400);margin-top:8px;">✱ required to enable export · 12 files · Android / Fire TV + Roku</p>
     </div>
     <button class="export-btn" id="exportBtn" onclick="runExport()" disabled>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
-      Export Selected Platforms
+      Export All Platforms
     </button>
   </div>
 
@@ -552,7 +510,6 @@
 // ═══════════════════════════════════════════
 const state = {
   images: { bg: null, logo16t: null, logo1x1: null, splash: null },
-  platforms: { android: true, roku: true },
   composers: {
     square: { bgScale: 100, bgOffsetX: 0, bgOffsetY: 0, scale: 80, offsetX: 0, offsetY: 0 },
     wide16: { bgScale: 100, bgOffsetX: 0, bgOffsetY: 0, scale: 80, offsetX: 0, offsetY: 0 }
@@ -657,11 +614,21 @@ function getSplash(tw, th) {
   return renderComposite(tw, th, 'wide16');
 }
 
-// Menu Close → 1:1 logo transparent only (no bg), fitted
+// Menu Close → 1:1 logo transparent only (no bg), fitted to fixed dimensions
 function getMenuClose(tw, th) {
   const src = state.images.logo1x1;
   if (src) return resizeFit(src, tw, th);
   return makeCanvas(tw, th);
+}
+
+// Native logo export → logo at its original uploaded resolution (no resize)
+function getLogoNative(src) {
+  if (!src) return makeCanvas(1, 1);
+  const { w, h } = dims(src);
+  const c = makeCanvas(w, h), ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(src, 0, 0, w, h);
+  return c;
 }
 
 // Menu Open → 16:9 logo transparent only (no bg), fitted
@@ -732,9 +699,8 @@ function updateReadiness() {
     const rc = document.getElementById('rc-' + t);
     if (rc) { if (imgs[t]) rc.classList.add('ready'); else rc.classList.remove('ready'); }
   });
-  const anyPlatform = Object.values(state.platforms).some(v => v);
   const hasLogo = !!(imgs.logo16t || imgs.logo1x1);
-  document.getElementById('exportBtn').disabled = !(imgs.bg && hasLogo && anyPlatform);
+  document.getElementById('exportBtn').disabled = !(imgs.bg && hasLogo);
 }
 function updateComposerPreviews() {
   renderCprev('cprev-square', 'square', 1, 1);
@@ -755,18 +721,7 @@ function renderCprev(elId, composerKey, rw, rh) {
 }
 function updateFilenamePreview() {
   const name = document.getElementById('assetName').value.trim() || 'MyApp';
-  document.getElementById('filenamePreview').textContent = `${name}-ctv-assets.zip`;
-}
-function togglePlatform(p) {
-  state.platforms[p] = !state.platforms[p];
-  document.getElementById('pcard-' + p).classList.toggle('selected', state.platforms[p]);
-  updateReadiness();
-}
-function switchTab(name) {
-  document.querySelectorAll('.tree-tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tree-pane').forEach(p => p.classList.remove('active'));
-  document.querySelector('.tree-tab.' + name).classList.add('active');
-  document.getElementById('tab-' + name).classList.add('active');
+  document.getElementById('filenamePreview').textContent = `${name} new.zip`;
 }
 
 // ═══════════════════════════════════════════
@@ -867,68 +822,64 @@ function log(type, msg) {
 }
 
 // ═══════════════════════════════════════════
-//  EXPORT — ANDROID / FIRE TV
+//  EXPORT — ANDROID / FIRE TV  (flat, no subdir)
 // ═══════════════════════════════════════════
-async function exportAndroid(zip, imgs) {
+async function exportAndroid(zip, n) {
   log('proc', '  ── 🤖 Android / Fire TV ──');
-  const dir = zip.folder('Android-Fire');
 
-  // App Icon — bg + logo composited (square)
-  log('proc', '  ⟳  App icon 512×512 (bg + logo)…');
-  dir.file('app-icon-512x512.png', await toBlob(getSquare(512, 512)));
-  log('ok', '  ✓  app-icon 512×512');
+  // App Icon 512×512 — bg + logo composited
+  log('proc', `  ⟳  Android_App_Icon_512x512_${n} 2.png…`);
+  zip.file(`Android_App_Icon_512x512_${n} 2.png`, await toBlob(getSquare(512, 512)));
+  log('ok', '  ✓  512×512');
 
-  // Menu Close — logo only, transparent
-  log('proc', '  ⟳  Menu close 256×256 (logo only, no bg)…');
-  dir.file('app-logo-menu-close-256x256.png', await toBlob(getMenuClose(256, 256)));
-  log('ok', '  ✓  menu-close 256×256');
+  // Menu Close 256×256 — variant 1 (bg+logo) + variant 2 (logo only)
+  log('proc', `  ⟳  Android_App_Menu_Closed_256x256_${n} 1 & 2.png…`);
+  zip.file(`Android_App_Menu_Closed_256x256_${n} 1.png`, await toBlob(getSquare(256, 256)));
+  zip.file(`Android_App_Menu_Closed_256x256_${n} 2.png`, await toBlob(getMenuClose(256, 256)));
+  log('ok', '  ✓  256×256 ×2');
 
-  // Menu Open — logo only, transparent
-  log('proc', '  ⟳  Menu open 256×144 (logo only, no bg)…');
-  dir.file('app-logo-menu-open-256x144.png', await toBlob(getMenuOpen(256, 144)));
-  log('ok', '  ✓  menu-open 256×144');
+  // Menu Open 256×144 — logo only (transparent)
+  log('proc', `  ⟳  Android_App_Menu_Open_256x144_${n} 2.png…`);
+  zip.file(`Android_App_Menu_Open_256x144_${n} 2.png`, await toBlob(getMenuOpen(256, 144)));
+  log('ok', '  ✓  256×144');
 
-  // App Banner — bg + logo composited (16:9)
-  log('proc', '  ⟳  App banner 320×180 (bg + logo)…');
-  dir.file('app-banner-320x180.png', await toBlob(get16x9(320, 180)));
-  log('ok', '  ✓  banner 320×180');
+  // App Banner 320×180 — bg + logo composited
+  log('proc', `  ⟳  App_Banner_320x180_${n} 1.png…`);
+  zip.file(`App_Banner_320x180_${n} 1.png`, await toBlob(get16x9(320, 180)));
+  log('ok', '  ✓  320×180');
 
-  // Splash — bg + logo composited (or splash override)
-  log('proc', '  ⟳  Splash 1920×1080 (bg + logo)…');
-  dir.file('splash-1920x1080.png', await toBlob(getSplash(1920, 1080)));
-  log('ok', '  ✓  splash 1920×1080');
-
-  log('ok', '  ✓  Android / Fire TV complete');
+  log('ok', '  ✓  Android / Fire TV — 5 files done');
 }
 
 // ═══════════════════════════════════════════
-//  EXPORT — ROKU
+//  EXPORT — ROKU  (flat, no subdir)
 // ═══════════════════════════════════════════
-async function exportRoku(zip, imgs) {
+async function exportRoku(zip, n) {
   log('proc', '  ── 📺 Roku ──');
-  const dir = zip.folder('Roku');
 
-  // App Icon — bg + logo composited, 4:3 cover-crop from square composer
-  log('proc', '  ⟳  App icon 540×405 (bg + logo, 4:3)…');
-  dir.file('app-icon-540x405.png', await toBlob(getSquare(540, 405)));
-  log('ok', '  ✓  app-icon 540×405');
+  // App Icon 540×405 — bg + logo, 4:3 cover-crop
+  log('proc', `  ⟳  App_Icon_${n}.png…`);
+  zip.file(`App_Icon_${n}.png`, await toBlob(getSquare(540, 405)));
+  log('ok', '  ✓  540×405');
 
-  // Menu Close — logo only, transparent
-  log('proc', '  ⟳  Menu close 1080×1080 (logo only, no bg)…');
-  dir.file('app-logo-menu-close-1080x1080.png', await toBlob(getMenuClose(1080, 1080)));
-  log('ok', '  ✓  menu-close 1080×1080');
+  // Menu Closed 1080×1080 — variant 1 (bg+logo) + variant 2 (logo only)
+  log('proc', `  ⟳  Android_App_Menu_Closed_1080x1080_${n} 1 & 2.png…`);
+  zip.file(`Android_App_Menu_Closed_1080x1080_${n} 1.png`, await toBlob(getSquare(1080, 1080)));
+  zip.file(`Android_App_Menu_Closed_1080x1080_${n} 2.png`, await toBlob(getMenuClose(1080, 1080)));
+  log('ok', '  ✓  1080×1080 ×2');
 
-  // Menu Open — logo only, transparent
-  log('proc', '  ⟳  Menu open 1920×1080 (logo only, no bg)…');
-  dir.file('app-logo-menu-open-1920x1080.png', await toBlob(getMenuOpen(1920, 1080)));
-  log('ok', '  ✓  menu-open 1920×1080');
+  // Menu Open 1920×1080 — logo only (transparent)
+  log('proc', `  ⟳  Android_App_Menu_Open_1920x1080_${n} 1.png…`);
+  zip.file(`Android_App_Menu_Open_1920x1080_${n} 1.png`, await toBlob(getMenuOpen(1920, 1080)));
+  log('ok', '  ✓  1920×1080');
 
-  // Splash — bg + logo composited (or splash override)
-  log('proc', '  ⟳  Splash 1920×1080 (bg + logo)…');
-  dir.file('splash-1920x1080.png', await toBlob(getSplash(1920, 1080)));
-  log('ok', '  ✓  splash 1920×1080');
+  // App Logo Menu Closed + Open — logo at native uploaded resolution (no resize)
+  log('proc', `  ⟳  App_Logo_Menu_Closed/Open_${n}.png (native res)…`);
+  zip.file(`App_Logo_Menu_Closed_${n}.png`, await toBlob(getLogoNative(state.images.logo1x1)));
+  zip.file(`App_Logo_Menu_Open_${n}.png`,   await toBlob(getLogoNative(state.images.logo16t)));
+  log('ok', '  ✓  Logo menu closed + open (native resolution)');
 
-  log('ok', '  ✓  Roku complete');
+  log('ok', '  ✓  Roku — 6 files done');
 }
 
 // ═══════════════════════════════════════════
@@ -941,13 +892,17 @@ async function runExport() {
   btn.innerHTML = `<svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Processing…`;
   log('proc', '▶  Starting CTV asset generation…');
   try {
-    const zip = new JSZip(), imgs = state.images;
-    if (state.platforms.android) await exportAndroid(zip, imgs);
-    if (state.platforms.roku)    await exportRoku(zip, imgs);
+    const zip = new JSZip();
+    const name = (document.getElementById('assetName').value.trim() || 'MyApp');
+    await exportAndroid(zip, name);
+    await exportRoku(zip, name);
+    // Shared splash — exported once regardless of which platforms are selected
+    log('proc', `  ⟳  ${name}-Splash.png…`);
+    zip.file(`${name}-Splash.png`, await toBlob(getSplash(1920, 1080)));
+    log('ok', '  ✓  Splash 1920×1080');
     log('proc', '  ⟳  Packaging ZIP…');
     const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
-    const name = (document.getElementById('assetName').value.trim() || 'MyApp');
-    const zipName = `${name}-ctv-assets.zip`;
+    const zipName = `${name} new.zip`;
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = zipName;
