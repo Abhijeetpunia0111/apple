@@ -1,0 +1,1737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TV Asset Generator</title>
+  <meta name="description" content="Generate Roku, Android TV, Fire TV and tvOS assets from one set of source files.">
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="theme.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    main { padding-bottom: 96px; }
+
+    .page-head { padding: 48px 0 8px; }
+    .page-head h1 { font-size: clamp(28px, 3.6vw, 40px); line-height: 1.08; letter-spacing: -0.03em; margin-bottom: 12px; }
+    .page-head p { color: var(--text-2); font-size: 16px; max-width: 52ch; }
+
+    .sec { margin-top: 56px; padding-top: 40px; border-top: 1px solid var(--border); }
+    .page-head + .sec { margin-top: 40px; }
+    .sec-head { margin-bottom: 24px; }
+    .sec-head h2 { font-size: 22px; margin-bottom: 4px; }
+    .sec-head p { color: var(--text-2); max-width: 70ch; }
+    .sub-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+    .sub-head h3 { font-size: 16px; }
+    .sub-note { color: var(--text-2); margin-bottom: 16px; max-width: 70ch; }
+    .sub-block + .sub-block { margin-top: 40px; }
+
+    /* ── Platforms: one segmented control, not three feature cards ── */
+    .platform-seg {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      border: 1px solid var(--border-strong); border-radius: var(--r-card); overflow: hidden;
+      background: var(--bg);
+    }
+    .pcard {
+      display: flex; flex-direction: column; gap: 16px; padding: 20px;
+      cursor: pointer; user-select: none; border-top: 2px solid transparent;
+      transition: background var(--t-base) var(--ease), border-color var(--t-base) var(--ease);
+    }
+    .pcard + .pcard { border-left: 1px solid var(--border); }
+    .pcard:hover { background: var(--surface); }
+    .pcard:focus-within { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
+    .pcard input { position: absolute; opacity: 0; pointer-events: none; }
+    .pcard.selected { background: var(--accent-tint); border-top-color: var(--accent); }
+    .pcard-top { display: flex; align-items: center; gap: 12px; }
+    .pcard-icon { font-size: 26px; color: var(--text-2); }
+    .pcard.selected .pcard-icon { color: var(--accent-ink); }
+    .pcard-title { flex: 1; display: flex; flex-direction: column; line-height: 1.25; }
+    .pcard-title strong { font-weight: 500; font-size: 16px; letter-spacing: -0.02em; }
+    .pcard-title small { color: var(--text-2); font-size: 12px; }
+    .pcard-box {
+      width: 20px; height: 20px; border-radius: var(--r); border: 1px solid var(--border-strong);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 14px; color: transparent; background: var(--bg);
+      transition: background var(--t-base) var(--ease), border-color var(--t-base) var(--ease);
+    }
+    .pcard.selected .pcard-box { background: var(--btn-bg); border-color: var(--btn-bg); color: var(--btn-ink); }
+    .pcard-specs { display: grid; gap: 6px; }
+    .pcard-specs div { display: flex; justify-content: space-between; gap: 12px; }
+    .pcard-specs dt { color: var(--text-2); font-size: 13px; }
+    .pcard-specs dd { font: 400 12px var(--font-mono); letter-spacing: 0; text-align: right; }
+    .empty-state {
+      border: 1px dashed var(--border-strong); border-radius: var(--r-card);
+      padding: 48px 24px; text-align: center; color: var(--text-2); margin-top: 40px;
+    }
+
+    /* ── Source files ── */
+    .upload-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .ucard {
+      display: flex; flex-direction: column;
+      border: 1px solid var(--border); border-radius: var(--r-card); background: var(--bg); overflow: hidden;
+      transition: border-color var(--t-base) var(--ease), box-shadow var(--t-base) var(--ease);
+    }
+    .ucard.drag-over { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-tint-2); }
+    .ucard.state-uploaded { border-color: color-mix(in srgb, var(--ok) 45%, var(--border)); }
+    .ucard.state-warn { border-color: color-mix(in srgb, var(--warn) 55%, var(--border)); }
+    .ucard-head { padding: 18px 18px 16px; display: grid; gap: 10px; }
+    .ucard-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .ucard-title { font-size: 15px; letter-spacing: -0.015em; }
+    .ucard-status { font-size: 18px; display: inline-flex; }
+    .ucard-status i { display: none; }
+    .ucard-status .st-empty { display: inline; color: var(--text-3); }
+    .state-uploaded .ucard-status .st-empty, .state-warn .ucard-status .st-empty { display: none; }
+    .state-uploaded .ucard-status .st-ok { display: inline; color: var(--ok); }
+    .state-warn .ucard-status .st-warn { display: inline; color: var(--warn); }
+    .ucard-used { display: flex; gap: 6px; flex-wrap: wrap; }
+    .ucard-desc { color: var(--text-2); font-size: 13px; line-height: 1.55; }
+    .ucard-desc b { color: var(--text); font-weight: 500; }
+
+    .drop-zone {
+      margin: 0 18px 18px; padding: 24px 16px; display: flex; flex-direction: column; align-items: center; gap: 4px;
+      border: 1px dashed var(--border-strong); border-radius: var(--r-card); cursor: pointer; text-align: center;
+      transition: background var(--t-base) var(--ease), border-color var(--t-base) var(--ease);
+    }
+    .drop-zone:hover { background: var(--surface); border-color: var(--text-3); }
+    .ucard.drag-over .drop-zone { background: var(--accent-tint); border-color: var(--accent); }
+    .state-uploaded .drop-zone, .state-warn .drop-zone { display: none; }
+    .drop-zone input[type=file] { display: none; }
+    .drop-icon { font-size: 22px; color: var(--text-2); margin-bottom: 4px; }
+    .drop-main { font-weight: 500; }
+    .drop-sub { color: var(--text-2); font-size: 12px; }
+    .req-pill { margin-top: 8px; font: 500 11px var(--font-mono); letter-spacing: 0; color: var(--accent-ink); }
+
+    .ucard-preview { display: none; flex-direction: column; margin-top: auto; }
+    .state-uploaded .ucard-preview, .state-warn .ucard-preview { display: flex; }
+    .preview-img { width: 100%; height: 120px; object-fit: contain; display: block; border-top: 1px solid var(--border); background: var(--surface); }
+    .preview-img.fill { object-fit: cover; }
+    .transparent-bg { background: repeating-conic-gradient(var(--checker-a) 0 25%, var(--checker-b) 0 50%) 0 0 / 12px 12px; }
+    .preview-footer { display: flex; align-items: center; justify-content: space-between; padding: 10px 18px; border-top: 1px solid var(--border); }
+    .preview-dims { font: 400 12px var(--font-mono); letter-spacing: 0; color: var(--text-2); }
+    .link-btn {
+      background: none; border: 0; padding: 4px 0; cursor: pointer; font: 500 13px var(--font-ui);
+      color: var(--accent-ink); display: inline-flex; align-items: center; gap: 4px;
+    }
+    .link-btn:hover { text-decoration: underline; text-underline-offset: 3px; }
+    .val-bar { display: none; align-items: flex-start; gap: 8px; font-size: 12px; line-height: 1.45; padding: 10px 18px; }
+    .val-bar.show { display: flex; }
+    .val-bar i { font-size: 15px; margin-top: 1px; flex-shrink: 0; }
+    .val-bar.ok { color: var(--ok); background: var(--ok-tint); }
+    .val-bar.warn { color: var(--warn); background: var(--warn-tint); }
+    .val-bar.err { color: var(--err); background: var(--err-tint); }
+
+    /* ── Previews ── */
+    .composer-grid, .output-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+    .output-grid { align-items: start; }
+    .ccard, .ocard { border: 1px solid var(--border); border-radius: var(--r-card); background: var(--bg); overflow: hidden; display: flex; flex-direction: column; }
+    .ccard-head, .ocard-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 14px 16px; }
+    .ccard-title, .ocard-title { font-weight: 500; font-size: 15px; letter-spacing: -0.015em; }
+    .ccard-sub, .ocard-size { color: var(--text-2); font-size: 12px; margin-top: 2px; }
+    .ocard-size { font-family: var(--font-mono); letter-spacing: 0; margin-top: 0; white-space: nowrap; }
+    .ccard-preview, .ocard-body {
+      height: 140px; background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center; overflow: hidden;
+    }
+    .ocard-body.transp-bg { background: repeating-conic-gradient(var(--checker-a) 0 25%, var(--checker-b) 0 50%) 0 0 / 12px 12px; }
+    .ocard-body canvas { display: block; width: 100%; height: 100%; object-fit: contain; }
+    .ccard-empty, .ocard-empty { color: var(--text-3); font-size: 12px; padding: 0 16px; text-align: center; }
+    .ccard-footer { display: flex; align-items: center; gap: 12px; padding: 12px 16px; margin-top: auto; }
+    .ccard-outputs { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; }
+    .head-actions { display: flex; align-items: center; gap: 10px; }
+    .ocard-layers { padding: 14px 16px; }
+    .layers-row { display: flex; gap: 10px; }
+    .layer-item { flex: 1; }
+    .layer-thumb { height: 40px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
+    .layer-thumb canvas { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .layer-thumb.transp-bg { background: repeating-conic-gradient(var(--checker-a) 0 25%, var(--checker-b) 0 50%) 0 0 / 8px 8px; }
+    .layer-thumb.transp-bg canvas { object-fit: contain; }
+    .layer-lbl { font: 400 11px var(--font-mono); letter-spacing: 0; color: var(--text-2); margin-top: 6px; }
+
+    /* ── File structure ── */
+    .tree-block + .tree-block { margin-top: 24px; }
+    .tree-block h3 { font-size: 15px; margin-bottom: 10px; }
+    .tree-wrap {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-card);
+      padding: 16px 20px; font: 400 12px/1.95 var(--font-mono); letter-spacing: 0; overflow-x: auto;
+    }
+    .tree-wrap + .tree-wrap { margin-top: 8px; }
+    .tree-row { display: flex; align-items: baseline; white-space: nowrap; gap: 2px; }
+    .t-pipe { color: var(--text-3); white-space: pre; }
+    .t-root, .t-dir { color: var(--text); font-weight: 500; }
+    .t-json { color: var(--accent-ink); }
+    .t-file { color: var(--text); }
+    .t-file.ready { color: var(--ok); }
+    .t-note { color: var(--text-2); white-space: pre; }
+    .tree-sep { height: 1px; background: var(--border); margin: 8px 0; }
+    .t-tag { margin-left: 10px; padding: 0 5px; font-size: 10px; line-height: 16px; color: var(--text-2); border: 1px solid var(--border-strong); border-radius: var(--r); }
+
+    /* ── Export ── */
+    .export-panel {
+      display: grid; grid-template-columns: 1fr auto; gap: 32px; align-items: center;
+      padding: 24px; border: 1px solid var(--border); border-radius: var(--r-card); background: var(--surface);
+    }
+    .filename-row { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; flex-wrap: wrap; }
+    .filename-row label { font-weight: 500; width: 100%; }
+    .name-suffix { font: 400 14px var(--font-mono); letter-spacing: 0; color: var(--text-2); }
+    .export-hint { color: var(--text-2); font-size: 13px; }
+    .export-hint code { color: var(--accent-ink); }
+    .readiness { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 16px; }
+    .rcheck { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-2); }
+    .rcheck i { font-size: 16px; }
+    .rcheck .on { display: none; color: var(--ok); }
+    .rcheck.ready { color: var(--text); }
+    .rcheck.ready .on { display: inline; }
+    .rcheck.ready .off { display: none; }
+    .export-summary { font-size: 12px; color: var(--text-2); margin-top: 12px; }
+    #exportBtn { height: 48px; padding: 0 28px; font-size: 15px; }
+
+    .log-panel {
+      margin-top: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-card);
+      padding: 12px 16px; font: 400 12px/1.8 var(--font-mono); letter-spacing: 0; max-height: 240px; overflow-y: auto; display: none;
+    }
+    .log-panel.show { display: block; }
+    .log-row { display: flex; gap: 12px; align-items: baseline; color: var(--text-2); }
+    .log-row.sub { padding-left: 16px; }
+    .log-t { color: var(--text-3); flex-shrink: 0; }
+    .log-row i { font-size: 13px; flex-shrink: 0; transform: translateY(2px); }
+    .log-row.ok { color: var(--ok); }
+    .log-row.err { color: var(--err); }
+    .log-row.proc { color: var(--text); }
+
+    /* ── Editor modals ── */
+    .editor-overlay { position: fixed; inset: 0; background: var(--scrim); z-index: 300; display: none; align-items: center; justify-content: center; padding: 24px; }
+    .editor-overlay.open { display: flex; }
+    .editor-panel {
+      background: var(--bg); border: 1px solid var(--border-strong); border-radius: var(--r-card);
+      max-width: 780px; width: 100%; max-height: calc(100dvh - 48px); overflow: auto;
+      box-shadow: var(--shadow-modal); display: flex; flex-direction: column;
+    }
+    .editor-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+    .editor-head-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .editor-head h3 { font-size: 17px; }
+    .editor-badge { font-size: 12px; color: var(--text-2); }
+    .editor-preview { background: var(--surface); padding: 16px; display: flex; align-items: center; justify-content: center; }
+    .editor-canvas-bg { background: repeating-conic-gradient(var(--checker-a) 0 25%, var(--checker-b) 0 50%) 0 0 / 12px 12px; border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; line-height: 0; }
+    .editor-canvas-bg canvas { display: block; max-width: 100%; max-height: 340px; width: auto; height: auto; }
+    .editor-controls { padding: 16px 20px; border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 24px; }
+    .ctrl-section-label { grid-column: 1 / -1; font-weight: 500; font-size: 13px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+    .ctrl-grp { display: flex; flex-direction: column; gap: 10px; }
+    .ctrl-top { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-2); }
+    .ctrl-val { font: 500 12px var(--font-mono); letter-spacing: 0; color: var(--text); min-width: 48px; text-align: right; }
+    input[type=range].ctrl-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; border-radius: 2px; background: var(--border-strong); outline: none; cursor: pointer; }
+    input[type=range].ctrl-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--btn-bg); border: 2px solid var(--bg); box-shadow: 0 0 0 1px var(--btn-bg); cursor: pointer; }
+    input[type=range].ctrl-slider::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--btn-bg); border: 2px solid var(--bg); cursor: pointer; }
+    input[type=range].ctrl-slider:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 6px; }
+    .editor-footer { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-top: 1px solid var(--border); }
+
+    @media (max-width: 860px) {
+      .page-head { padding-top: 32px; }
+      .platform-seg { grid-template-columns: 1fr; }
+      .pcard + .pcard { border-left: 0; border-top: 1px solid var(--border); }
+      .upload-grid { grid-template-columns: 1fr; }
+      .export-panel { grid-template-columns: 1fr; }
+      #exportBtn { width: 100%; }
+      .editor-controls { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="site-header-in">
+    <a class="brand" href="index.html" aria-label="TV Asset Tools home">
+      <span class="brand-mark"><i class="ph ph-television-simple" aria-hidden="true"></i></span>
+      <span>TV Asset Tools</span>
+    </a>
+    <nav class="site-nav" aria-label="Tools">
+      <a href="asset-generator.html" aria-current="page">Generator</a>
+      <a href="tvos-fix-appstore-bg.html">Background fixer</a>
+    </nav>
+    <div class="site-header-end">
+      <span class="local-note">Runs in your browser</span>
+      <button class="icon-btn" type="button" data-theme-toggle aria-label="Switch theme"></button>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+
+  <div class="page-head">
+    <h1>Generate TV assets for every platform</h1>
+    <p>Tick the platforms you need, upload your sources once, and export everything in one ZIP.</p>
+  </div>
+
+  <!-- Platforms -->
+  <section class="sec">
+    <div class="sec-head">
+      <h2>Platforms</h2>
+      <p>Choose one or more. Source files, previews, file structure and export all follow your selection.</p>
+    </div>
+
+    <div class="platform-seg" id="platformGrid" role="group" aria-label="Platforms">
+
+      <label class="pcard roku selected">
+        <input type="checkbox" value="roku" checked>
+        <span class="pcard-top">
+          <i class="ph ph-television-simple pcard-icon" aria-hidden="true"></i>
+          <span class="pcard-title"><strong>Roku</strong><small>6 PNG files</small></span>
+          <span class="pcard-box"><i class="ph ph-check" aria-hidden="true"></i></span>
+        </span>
+        <dl class="pcard-specs">
+          <div><dt>App icon</dt><dd>540 × 540</dd></div>
+          <div><dt>Menu closed (2)</dt><dd>1080 × 1080</dd></div>
+          <div><dt>Menu open</dt><dd>1920 × 1080</dd></div>
+          <div><dt>Logo open and closed</dt><dd>native size</dd></div>
+        </dl>
+      </label>
+
+      <label class="pcard ctv selected">
+        <input type="checkbox" value="ctv" checked>
+        <span class="pcard-top">
+          <i class="ph ph-android-logo pcard-icon" aria-hidden="true"></i>
+          <span class="pcard-title"><strong>CTV</strong><small>Android TV and Fire TV, 5 PNG files</small></span>
+          <span class="pcard-box"><i class="ph ph-check" aria-hidden="true"></i></span>
+        </span>
+        <dl class="pcard-specs">
+          <div><dt>App icon</dt><dd>512 × 512</dd></div>
+          <div><dt>Menu closed (2)</dt><dd>256 × 256</dd></div>
+          <div><dt>Menu open</dt><dd>256 × 144</dd></div>
+          <div><dt>App banner</dt><dd>320 × 180</dd></div>
+        </dl>
+      </label>
+
+      <label class="pcard apple selected">
+        <input type="checkbox" value="apple" checked>
+        <span class="pcard-top">
+          <i class="ph ph-apple-logo pcard-icon" aria-hidden="true"></i>
+          <span class="pcard-title"><strong>Apple</strong><small>tvOS, Images.xcassets and 2 PNGs</small></span>
+          <span class="pcard-box"><i class="ph ph-check" aria-hidden="true"></i></span>
+        </span>
+        <dl class="pcard-specs">
+          <div><dt>Home icon</dt><dd>400 × 240, 1x and 2x</dd></div>
+          <div><dt>App Store icon</dt><dd>1280 × 768</dd></div>
+          <div><dt>Top Shelf and Wide</dt><dd>1920 and 2320 × 720</dd></div>
+          <div><dt>Menu closed</dt><dd>1080 × 1080</dd></div>
+          <div><dt>Menu open</dt><dd>1920 × 1080</dd></div>
+        </dl>
+      </label>
+
+    </div>
+
+    <div class="empty-state" id="emptyState" hidden>Select at least one platform to see its source files, previews and export.</div>
+  </section>
+
+  <div id="workspace">
+
+  <!-- Source files -->
+  <section class="sec">
+    <div class="sec-head">
+      <h2>Source files</h2>
+      <p>Only the files your selected platforms use are shown. Drop a PNG on a card or click it to browse.</p>
+    </div>
+
+    <div class="upload-grid">
+
+      <!-- 16:9 logo -->
+      <div class="ucard" id="ucard-logo16t" data-type="logo16t" data-p="roku ctv apple">
+        <div class="ucard-head">
+          <div class="ucard-title-row">
+            <h3 class="ucard-title">16:9 logo (no background)</h3>
+            <span class="ucard-status" aria-hidden="true"><i class="ph ph-circle-dashed st-empty"></i><i class="ph ph-check-circle st-ok"></i><i class="ph ph-warning st-warn"></i></span>
+          </div>
+          <div class="ucard-used"><span class="chip" data-p="roku">Roku</span><span class="chip" data-p="ctv">CTV</span><span class="chip" data-p="apple">Apple</span></div>
+          <p class="ucard-desc">Transparent 16:9 logo.
+            <span data-p="roku ctv"><b>Roku and CTV:</b> Menu Open outputs and the front layer of the widescreen composer. </span>
+            <span data-p="apple"><b>Apple:</b> front layer of both icon stacks and Top Shelf, plus the Menu Open icon with no background.</span>
+          </p>
+        </div>
+        <div class="drop-zone" tabindex="0" role="button" aria-label="Upload 16:9 logo">
+          <input type="file" id="fi-logo16t" accept="image/png,image/*" onchange="handleFile(event,'logo16t')">
+          <i class="ph ph-upload-simple drop-icon" aria-hidden="true"></i>
+          <div class="drop-main">Drop PNG or click to upload</div>
+          <div class="drop-sub">16:9 ratio, transparent, no background</div>
+          <div class="req-pill" id="pill-logo16t"></div>
+        </div>
+        <div class="ucard-preview" id="prev-logo16t">
+          <img class="preview-img transparent-bg" id="pimg-logo16t" alt="Uploaded 16:9 logo">
+          <div class="preview-footer"><span class="preview-dims" id="pdims-logo16t"></span><button type="button" class="link-btn" onclick="document.getElementById('fi-logo16t').click()"><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i>Replace</button></div>
+        </div>
+        <div class="val-bar" id="val-logo16t"></div>
+      </div>
+
+      <!-- Background -->
+      <div class="ucard" id="ucard-bg" data-type="bg" data-p="roku ctv apple">
+        <div class="ucard-head">
+          <div class="ucard-title-row">
+            <h3 class="ucard-title">Background image</h3>
+            <span class="ucard-status" aria-hidden="true"><i class="ph ph-circle-dashed st-empty"></i><i class="ph ph-check-circle st-ok"></i><i class="ph ph-warning st-warn"></i></span>
+          </div>
+          <div class="ucard-used"><span class="chip" data-p="roku">Roku</span><span class="chip" data-p="ctv">CTV</span><span class="chip" data-p="apple">Apple</span></div>
+          <p class="ucard-desc">Pure background with no logo.
+            <span data-p="roku ctv"><b>Roku and CTV:</b> back layer in the composers. </span>
+            <span data-p="apple"><b>Apple:</b> home icon back, App Store back, Top Shelf and Top Shelf Wide.</span>
+          </p>
+        </div>
+        <div class="drop-zone" tabindex="0" role="button" aria-label="Upload background image">
+          <input type="file" id="fi-bg" accept="image/png,image/*" onchange="handleFile(event,'bg')">
+          <i class="ph ph-upload-simple drop-icon" aria-hidden="true"></i>
+          <div class="drop-main">Drop PNG or click to upload</div>
+          <div class="drop-sub" id="sub-bg">Any size, landscape recommended</div>
+          <div class="req-pill" id="pill-bg"></div>
+        </div>
+        <div class="ucard-preview" id="prev-bg">
+          <img class="preview-img fill" id="pimg-bg" alt="Uploaded background">
+          <div class="preview-footer"><span class="preview-dims" id="pdims-bg"></span><button type="button" class="link-btn" onclick="document.getElementById('fi-bg').click()"><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i>Replace</button></div>
+        </div>
+        <div class="val-bar" id="val-bg"></div>
+      </div>
+
+      <!-- 1:1 logo -->
+      <div class="ucard" id="ucard-logo1x1" data-type="logo1x1" data-p="roku ctv apple">
+        <div class="ucard-head">
+          <div class="ucard-title-row">
+            <h3 class="ucard-title">1:1 logo (no background)</h3>
+            <span class="ucard-status" aria-hidden="true"><i class="ph ph-circle-dashed st-empty"></i><i class="ph ph-check-circle st-ok"></i><i class="ph ph-warning st-warn"></i></span>
+          </div>
+          <div class="ucard-used"><span class="chip" data-p="roku">Roku</span><span class="chip" data-p="ctv">CTV</span><span class="chip" data-p="apple">Apple</span></div>
+          <p class="ucard-desc">Transparent square logo, 1080 × 1080 recommended.
+            <span data-p="roku ctv"><b>Roku and CTV:</b> Menu Closed outputs and the square composer. </span>
+            <span data-p="apple"><b>Apple:</b> the 1080 × 1080 Menu Closed icon with no background. Uses the 16:9 logo if this is empty.</span>
+          </p>
+        </div>
+        <div class="drop-zone" tabindex="0" role="button" aria-label="Upload 1:1 logo">
+          <input type="file" id="fi-logo1x1" accept="image/png,image/*" onchange="handleFile(event,'logo1x1')">
+          <i class="ph ph-upload-simple drop-icon" aria-hidden="true"></i>
+          <div class="drop-main">Drop PNG or click to upload</div>
+          <div class="drop-sub">1:1 square, transparent, 1080 × 1080 recommended</div>
+          <div class="req-pill" id="pill-logo1x1"></div>
+        </div>
+        <div class="ucard-preview" id="prev-logo1x1">
+          <img class="preview-img transparent-bg" id="pimg-logo1x1" alt="Uploaded 1:1 logo">
+          <div class="preview-footer"><span class="preview-dims" id="pdims-logo1x1"></span><button type="button" class="link-btn" onclick="document.getElementById('fi-logo1x1').click()"><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i>Replace</button></div>
+        </div>
+        <div class="val-bar" id="val-logo1x1"></div>
+      </div>
+
+      <!-- Splash -->
+      <div class="ucard" id="ucard-splash" data-type="splash" data-p="roku ctv apple">
+        <div class="ucard-head">
+          <div class="ucard-title-row">
+            <h3 class="ucard-title">16:9 splash with background</h3>
+            <span class="ucard-status" aria-hidden="true"><i class="ph ph-circle-dashed st-empty"></i><i class="ph ph-check-circle st-ok"></i><i class="ph ph-warning st-warn"></i></span>
+          </div>
+          <div class="ucard-used"><span class="chip" data-p="roku">Roku</span><span class="chip" data-p="ctv">CTV</span><span class="chip" data-p="apple">Apple</span></div>
+          <p class="ucard-desc">Finished splash or launch screen, 1920 × 1080.
+            <span data-p="roku ctv"><b>Roku and CTV:</b> used as the splash, otherwise built from the background and logo. </span>
+            <span data-p="apple"><b>Apple:</b> <code>launchscreen.imageset</code>, the same PNG at 1x, 2x and 3x. Uses the background if empty.</span>
+          </p>
+        </div>
+        <div class="drop-zone" tabindex="0" role="button" aria-label="Upload splash image">
+          <input type="file" id="fi-splash" accept="image/png,image/*" onchange="handleFile(event,'splash')">
+          <i class="ph ph-upload-simple drop-icon" aria-hidden="true"></i>
+          <div class="drop-main">Drop PNG or click to upload</div>
+          <div class="drop-sub">1920 × 1080, 16:9</div>
+          <div class="req-pill" id="pill-splash"></div>
+        </div>
+        <div class="ucard-preview" id="prev-splash">
+          <img class="preview-img fill" id="pimg-splash" alt="Uploaded splash">
+          <div class="preview-footer"><span class="preview-dims" id="pdims-splash"></span><button type="button" class="link-btn" onclick="document.getElementById('fi-splash').click()"><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i>Replace</button></div>
+        </div>
+        <div class="val-bar" id="val-splash"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Previews -->
+  <section class="sec">
+    <div class="sec-head">
+      <h2>Previews</h2>
+      <p>Live renders from your uploads. Use Edit to position the logo, the result drives the export.</p>
+    </div>
+
+    <div class="sub-block" data-p="roku ctv">
+      <div class="sub-head">
+        <h3>Composers</h3>
+        <span class="chip" data-p="roku">Roku</span><span class="chip" data-p="ctv">CTV</span>
+      </div>
+      <p class="sub-note">Square uses the 1:1 logo. Widescreen uses the 16:9 logo and falls back to the 1:1 logo.</p>
+
+      <div class="composer-grid">
+
+        <div class="ccard" data-p="roku ctv">
+          <div class="ccard-head">
+            <div><div class="ccard-title">Square, 1:1</div><div class="ccard-sub">Background and 1:1 logo for square icons and menu outputs</div></div>
+          </div>
+          <div class="ccard-preview" id="cprev-square"><span class="ccard-empty">Upload a background and a 1:1 logo to preview</span></div>
+          <div class="ccard-footer">
+            <div class="ccard-outputs">
+              <span class="chip" data-p="ctv">CTV 512 × 512</span>
+              <span class="chip" data-p="ctv">CTV 256 × 256</span>
+              <span class="chip" data-p="roku">Roku 1080 × 1080</span>
+            </div>
+            <button class="btn btn-secondary btn-sm" type="button" onclick="openEditor('square')"><i class="ph ph-pencil-simple" aria-hidden="true"></i>Edit</button>
+          </div>
+        </div>
+
+        <div class="ccard" data-p="roku ctv">
+          <div class="ccard-head">
+            <div><div class="ccard-title">Widescreen, 16:9</div><div class="ccard-sub">Background and 16:9 logo for the banner and splash</div></div>
+          </div>
+          <div class="ccard-preview" id="cprev-wide16"><span class="ccard-empty">Upload a background and a 16:9 logo to preview</span></div>
+          <div class="ccard-footer">
+            <div class="ccard-outputs">
+              <span class="chip" data-p="ctv">CTV banner 320 × 180</span>
+              <span class="chip" data-p="roku ctv">Splash 1920 × 1080</span>
+            </div>
+            <button class="btn btn-secondary btn-sm" type="button" onclick="openEditor('wide16')"><i class="ph ph-pencil-simple" aria-hidden="true"></i>Edit</button>
+          </div>
+        </div>
+
+        <div class="ccard" data-p="roku">
+          <div class="ccard-head">
+            <div><div class="ccard-title">App icon, 1:1</div><div class="ccard-sub">Background and 16:9 logo on a square canvas</div></div>
+          </div>
+          <div class="ccard-preview" id="cprev-appicon"><span class="ccard-empty">Upload a background and a 16:9 logo to preview</span></div>
+          <div class="ccard-footer">
+            <div class="ccard-outputs">
+              <span class="chip">Roku 540 × 540</span>
+            </div>
+            <button class="btn btn-secondary btn-sm" type="button" onclick="openEditor('appicon')"><i class="ph ph-pencil-simple" aria-hidden="true"></i>Edit</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="sub-block" data-p="apple">
+      <div class="sub-head">
+        <h3>tvOS images</h3>
+        <span class="chip">Apple</span>
+      </div>
+
+      <div class="output-grid">
+
+        <div class="ocard">
+          <div class="ocard-head">
+            <span class="ocard-title">App icon layers</span>
+            <div class="head-actions">
+              <span class="ocard-size">400 × 240</span>
+              <button class="btn btn-secondary btn-sm" type="button" onclick="openFrontEditor()" title="Edit front layer position and size"><i class="ph ph-pencil-simple" aria-hidden="true"></i>Edit</button>
+            </div>
+          </div>
+          <div class="ocard-body" id="opreview-icon"><span class="ocard-empty">Upload sources to preview</span></div>
+          <div class="ocard-layers">
+            <div class="layers-row">
+              <div class="layer-item"><div class="layer-thumb" id="lthumb-back"></div><div class="layer-lbl">Back: background.png</div></div>
+              <div class="layer-item"><div class="layer-thumb transp-bg" id="lthumb-front"></div><div class="layer-lbl">Front: front.png</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ocard">
+          <div class="ocard-head">
+            <span class="ocard-title">Top Shelf</span>
+            <div class="head-actions">
+              <span class="ocard-size">1920 × 720</span>
+              <button class="btn btn-secondary btn-sm" type="button" onclick="openTopShelfEditor()" title="Edit crop position and scale for both Top Shelf images"><i class="ph ph-pencil-simple" aria-hidden="true"></i>Edit</button>
+            </div>
+          </div>
+          <div class="ocard-body" id="opreview-topshelf"><span class="ocard-empty">Upload a background</span></div>
+        </div>
+
+        <div class="ocard">
+          <div class="ocard-head">
+            <span class="ocard-title">Top Shelf Wide</span>
+            <span class="ocard-size">2320 × 720</span>
+          </div>
+          <div class="ocard-body" id="opreview-topshelf-wide"><span class="ocard-empty">Upload a background</span></div>
+        </div>
+
+        <div class="ocard">
+          <div class="ocard-head">
+            <span class="ocard-title">Menu closed, no background</span>
+            <span class="ocard-size">1080 × 1080</span>
+          </div>
+          <div class="ocard-body transp-bg" id="opreview-menuclosed"><span class="ocard-empty">Upload a 1:1 or 16:9 logo</span></div>
+        </div>
+
+        <div class="ocard">
+          <div class="ocard-head">
+            <span class="ocard-title">Menu open, no background</span>
+            <span class="ocard-size">1920 × 1080</span>
+          </div>
+          <div class="ocard-body transp-bg" id="opreview-menuopen"><span class="ocard-empty">Upload a 16:9 logo</span></div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- File structure -->
+  <section class="sec">
+    <div class="sec-head">
+      <h2>File structure</h2>
+      <p>What the ZIP will contain.</p>
+      <p id="multiNote" hidden>Images.xcassets and the flat PNG files below sit together in the same ZIP.</p>
+    </div>
+
+    <div class="tree-block" data-p="roku ctv">
+      <h3 id="flatTreeTitle">Flat PNGs</h3>
+      <div class="tree-wrap">
+        <div class="tree-row" data-p="ctv"><span class="t-pipe">├── </span><span class="t-file">App_Icon_512x512_{name} 2.png</span><span class="t-note">  512×512, bg and logo</span><span class="t-tag">CTV</span></div>
+        <div class="tree-row" data-p="ctv"><span class="t-pipe">├── </span><span class="t-file">App_Menu_Closed_256x256_{name} 1.png</span><span class="t-note">  256×256, bg and logo</span><span class="t-tag">CTV</span></div>
+        <div class="tree-row" data-p="ctv"><span class="t-pipe">├── </span><span class="t-file">App_Menu_Closed_256x256_{name} 2.png</span><span class="t-note">  256×256, logo only (transparent)</span><span class="t-tag">CTV</span></div>
+        <div class="tree-row" data-p="ctv"><span class="t-pipe">├── </span><span class="t-file">App_Menu_Open_256x144_{name} 2.png</span><span class="t-note">  256×144, logo only (transparent)</span><span class="t-tag">CTV</span></div>
+        <div class="tree-row" data-p="ctv"><span class="t-pipe">├── </span><span class="t-file">App_Banner_320x180_{name} 1.png</span><span class="t-note">  320×180, bg and logo</span><span class="t-tag">CTV</span></div>
+        <div class="tree-row" data-p="roku"><span class="t-pipe">├── </span><span class="t-file">App_Icon_{name}.png</span><span class="t-note">  540×540, bg and 16:9 logo on a square</span><span class="t-tag">Roku</span></div>
+        <div class="tree-row" data-p="roku"><span class="t-pipe">├── </span><span class="t-file">App_Menu_Closed_1080x1080_{name} 1.png</span><span class="t-note">  1080×1080, bg and logo</span><span class="t-tag">Roku</span></div>
+        <div class="tree-row" data-p="roku"><span class="t-pipe">├── </span><span class="t-file">App_Menu_Closed_1080x1080_{name} 2.png</span><span class="t-note">  1080×1080, logo only (transparent)</span><span class="t-tag">Roku</span></div>
+        <div class="tree-row" data-p="roku"><span class="t-pipe">├── </span><span class="t-file">App_Menu_Open_1920x1080_{name} 1.png</span><span class="t-note">  1920×1080, logo only (transparent)</span><span class="t-tag">Roku</span></div>
+        <div class="tree-row" data-p="roku"><span class="t-pipe">├── </span><span class="t-file">App_Logo_Menu_Closed_{name}.png</span><span class="t-note">  native size, 1:1 logo as uploaded</span><span class="t-tag">Roku</span></div>
+        <div class="tree-row" data-p="roku"><span class="t-pipe">├── </span><span class="t-file">App_Logo_Menu_Open_{name}.png</span><span class="t-note">  native size, 16:9 logo as uploaded</span><span class="t-tag">Roku</span></div>
+        <div class="tree-row"><span class="t-pipe">└── </span><span class="t-file">{name}-Splash.png</span><span class="t-note">  1920×1080, shared by Roku and CTV</span></div>
+      </div>
+    </div>
+
+    <div class="tree-block" data-p="apple">
+      <h3>Apple tvOS, ready for Xcode</h3>
+      <p class="sub-note">The two menu PNGs sit next to Images.xcassets, not inside it.</p>
+      <div class="tree-wrap">
+        <div class="tree-row"><span class="t-file" id="tr-menu-closed">App_Menu_Closed_1080x1080_{name}.png</span><span class="t-note">  1080×1080, 1:1 logo only, no background</span></div>
+        <div class="tree-row"><span class="t-file" id="tr-menu-open">App_Menu_Open_1920x1080_{name}.png</span><span class="t-note">  1920×1080, 16:9 logo only, no background</span></div>
+        <div class="tree-sep"></div>
+    <div class="tree-row"><span class="t-root">Images.xcassets</span><span class="t-dir">/</span></div>
+    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-json">Contents.json</span></div>
+    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-dir">Brand Assets.brandassets</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span><span class="t-note">  size fields: 1280x768 + 400x240</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;├── </span><span class="t-dir">App Icon - App Store.imagestack</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span><span class="t-note">  layers: [Front, Back]</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── </span><span class="t-dir">Front.imagestacklayer</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── </span><span class="t-dir">Content.imageset</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── </span><span class="t-file" id="tr-as-front">appstore_front.png</span><span class="t-note">  1280×768</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── </span><span class="t-dir">Back.imagestacklayer</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── </span><span class="t-dir">Content.imageset</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── </span><span class="t-file" id="tr-as-back">appstore_background.png</span><span class="t-note">  1280×768</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;├── </span><span class="t-dir">App Icon.imagestack</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span><span class="t-note">  layers: [Front, Back]</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── </span><span class="t-dir">Front.imagestacklayer</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── </span><span class="t-dir">Content.imageset</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-file" id="tr-front">front.png</span><span class="t-note">  400×240 @1x</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── </span><span class="t-file" id="tr-front-2x">front_2x.png</span><span class="t-note">  800×480 @2x</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── </span><span class="t-dir">Back.imagestacklayer</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── </span><span class="t-dir">Content.imageset</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-file" id="tr-back">background.png</span><span class="t-note">  400×240 @1x</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── </span><span class="t-file" id="tr-back-2x">background_2x.png</span><span class="t-note">  800×480 @2x</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;├── </span><span class="t-dir">Top Shelf Image.imageset</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── </span><span class="t-file" id="tr-ts">topshelf.png</span><span class="t-note">  1920×720 @1x</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── </span><span class="t-file" id="tr-ts-2x">topshelf_2x.png</span><span class="t-note">  3840×1440 @2x</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;└── </span><span class="t-dir">Top Shelf Image Wide.imageset</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-file" id="tr-tsw">topshelf_wide.png</span><span class="t-note">  2320×720 @1x</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── </span><span class="t-file" id="tr-tsw-2x">topshelf_wide_2x.png</span><span class="t-note">  4640×1440 @2x</span></div>
+    <div class="tree-row"><span class="t-pipe">└── </span><span class="t-dir">launchscreen.imageset</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span><span class="t-note">  1x / 2x / 3x (universal)</span></div>
+    <div class="tree-row"><span class="t-pipe">&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-file" id="tr-splash">splash.png</span><span class="t-note">  @1x</span></div>
+    <div class="tree-row"><span class="t-pipe">&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-file" id="tr-splash-2x">splash_2x.png</span><span class="t-note">  @2x (same image)</span></div>
+    <div class="tree-row"><span class="t-pipe">&nbsp;&nbsp;&nbsp;&nbsp;└── </span><span class="t-file" id="tr-splash-3x">splash_3x.png</span><span class="t-note">  @3x (same image)</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Export -->
+  <section class="sec">
+    <div class="sec-head">
+      <h2>Export</h2>
+      <p>One ZIP with every selected platform.</p>
+    </div>
+
+    <div class="export-panel">
+      <div class="export-info">
+        <div class="filename-row">
+          <label for="assetName">App name</label>
+          <input id="assetName" type="text" class="field-input" placeholder="MyApp" value="MyApp" oninput="updateFilenamePreview()" autocomplete="off" spellcheck="false">
+          <span class="name-suffix" id="nameSuffix"> new.zip</span>
+        </div>
+        <p class="export-hint">Downloads as <code id="filenamePreview">MyApp new.zip</code></p>
+        <div class="readiness" aria-label="Source file status">
+          <div class="rcheck" id="rc-bg"><i class="ph ph-circle off" aria-hidden="true"></i><i class="ph ph-check-circle on" aria-hidden="true"></i><span>Background</span></div>
+          <div class="rcheck" id="rc-logo16t"><i class="ph ph-circle off" aria-hidden="true"></i><i class="ph ph-check-circle on" aria-hidden="true"></i><span>16:9 logo</span></div>
+          <div class="rcheck" id="rc-logo1x1"><i class="ph ph-circle off" aria-hidden="true"></i><i class="ph ph-check-circle on" aria-hidden="true"></i><span>1:1 logo</span></div>
+          <div class="rcheck" id="rc-splash"><i class="ph ph-circle off" aria-hidden="true"></i><i class="ph ph-check-circle on" aria-hidden="true"></i><span>Splash</span></div>
+        </div>
+        <p class="export-summary" id="exportSummary"></p>
+      </div>
+      <button class="btn btn-primary" id="exportBtn" type="button" onclick="runExport()" disabled><i class="ph ph-download-simple" aria-hidden="true"></i>Export ZIP</button>
+    </div>
+
+    <div class="log-panel" id="logPanel" role="log" aria-live="polite"></div>
+  </section>
+
+  </div><!-- /workspace -->
+
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <span>Everything runs locally. No account and no backend.</span>
+    <span>Made by <a href="https://www.linkedin.com/in/abhijeetpunia" target="_blank" rel="noopener">Abhijeet Punia</a></span>
+  </div>
+</footer>
+
+<!-- COMPOSER EDITOR MODAL (Roku / CTV) -->
+<div class="editor-overlay" id="editorOverlay" role="dialog" aria-modal="true" aria-labelledby="editorTitle">
+  <div class="editor-panel">
+    <div class="editor-head">
+      <div class="editor-head-left">
+        <h3 id="editorTitle">Composer</h3>
+        <span class="editor-badge" id="editorBadge">outputs</span>
+      </div>
+      <button class="icon-btn" type="button" onclick="closeEditor()" aria-label="Close editor"><i class="ph ph-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="editor-preview">
+      <div class="editor-canvas-bg"><canvas id="editorCanvas"></canvas></div>
+    </div>
+    <div class="editor-controls">
+      <div class="ctrl-section-label">Background</div>
+      <div class="ctrl-grp">
+        <div class="ctrl-top"><label for="sl-bg-scale">Zoom</label><span class="ctrl-val" id="lbl-bg-scale">100%</span></div>
+        <input type="range" class="ctrl-slider" id="sl-bg-scale" min="50" max="300" step="1" value="100" oninput="onEditorSlider()">
+      </div>
+      <div class="ctrl-grp">
+        <div class="ctrl-top"><label for="sl-bg-x">Move X</label><span class="ctrl-val" id="lbl-bg-x">0 px</span></div>
+        <input type="range" class="ctrl-slider" id="sl-bg-x" min="-800" max="800" step="1" value="0" oninput="onEditorSlider()">
+      </div>
+      <div class="ctrl-grp">
+        <div class="ctrl-top"><label for="sl-bg-y">Move Y</label><span class="ctrl-val" id="lbl-bg-y">0 px</span></div>
+        <input type="range" class="ctrl-slider" id="sl-bg-y" min="-500" max="500" step="1" value="0" oninput="onEditorSlider()">
+      </div>
+      <div class="ctrl-section-label">Logo</div>
+      <div class="ctrl-grp">
+        <div class="ctrl-top"><label for="sl-scale">Size</label><span class="ctrl-val" id="lbl-scale">80%</span></div>
+        <input type="range" class="ctrl-slider" id="sl-scale" min="10" max="200" step="1" value="80" oninput="onEditorSlider()">
+      </div>
+      <div class="ctrl-grp">
+        <div class="ctrl-top"><label for="sl-x">Move X</label><span class="ctrl-val" id="lbl-x">0 px</span></div>
+        <input type="range" class="ctrl-slider" id="sl-x" min="-500" max="500" step="1" value="0" oninput="onEditorSlider()">
+      </div>
+      <div class="ctrl-grp">
+        <div class="ctrl-top"><label for="sl-y">Move Y</label><span class="ctrl-val" id="lbl-y">0 px</span></div>
+        <input type="range" class="ctrl-slider" id="sl-y" min="-300" max="300" step="1" value="0" oninput="onEditorSlider()">
+      </div>
+    </div>
+    <div class="editor-footer">
+      <button class="btn btn-secondary btn-sm" type="button" onclick="resetEditor()"><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i>Reset</button>
+      <button class="btn btn-primary btn-sm" type="button" onclick="closeEditor()">Apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- FRONT LAYER EDITOR MODAL (Apple) -->
+<div class="editor-overlay" id="frontEditorOverlay" role="dialog" aria-modal="true" aria-labelledby="feTitle">
+  <div class="editor-panel">
+    <div class="editor-head">
+      <div class="editor-head-left">
+        <h3 id="feTitle">Front layer</h3>
+        <span class="editor-badge">front.png, 400 × 240</span>
+      </div>
+      <button class="icon-btn" type="button" onclick="closeFrontEditor()" aria-label="Close editor"><i class="ph ph-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="editor-preview">
+      <div class="editor-canvas-bg"><canvas id="feCanvas" width="800" height="480"></canvas></div>
+    </div>
+    <div class="editor-controls">
+      <div class="ctrl-grp">
+        <div class="ctrl-top"><label for="fe-sl-scale">Size</label><span class="ctrl-val" id="fe-lbl-scale">100%</span></div>
+        <input type="range" class="ctrl-slider" id="fe-sl-scale" min="20" max="200" step="1" value="100" oninput="onFrontSlider()">
+      </div>
+      <div class="ctrl-grp">
+        <div class="ctrl-top"><label for="fe-sl-x">Horizontal</label><span class="ctrl-val" id="fe-lbl-x">0 px</span></div>
+        <input type="range" class="ctrl-slider" id="fe-sl-x" min="-200" max="200" step="1" value="0" oninput="onFrontSlider()">
+      </div>
+      <div class="ctrl-grp">
+        <div class="ctrl-top"><label for="fe-sl-y">Vertical</label><span class="ctrl-val" id="fe-lbl-y">0 px</span></div>
+        <input type="range" class="ctrl-slider" id="fe-sl-y" min="-120" max="120" step="1" value="0" oninput="onFrontSlider()">
+      </div>
+    </div>
+    <div class="editor-footer">
+      <button class="btn btn-secondary btn-sm" type="button" onclick="resetFrontEditor()"><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i>Reset</button>
+      <button class="btn btn-primary btn-sm" type="button" onclick="closeFrontEditor()">Apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOP SHELF EDITOR MODAL (Apple) -->
+<div class="editor-overlay" id="tsEditorOverlay" role="dialog" aria-modal="true" aria-labelledby="tsTitle">
+  <div class="editor-panel" style="max-width:960px;">
+    <div class="editor-head">
+      <div class="editor-head-left">
+        <h3 id="tsTitle">Top Shelf crop</h3>
+        <span class="editor-badge">Applies to Top Shelf and Top Shelf Wide</span>
+      </div>
+      <button class="icon-btn" type="button" onclick="closeTopShelfEditor()" aria-label="Close editor"><i class="ph ph-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="editor-preview">
+      <div class="editor-canvas-bg"><canvas id="tsEditorCanvas" width="912" height="342"></canvas></div>
+    </div>
+    <div class="editor-controls">
+      <div class="ctrl-grp">
+        <div class="ctrl-top"><label for="ts-sl-scale">Zoom</label><span class="ctrl-val" id="ts-lbl-scale">100%</span></div>
+        <input type="range" class="ctrl-slider" id="ts-sl-scale" min="50" max="200" step="1" value="100" oninput="onTsSlider()">
+      </div>
+      <div class="ctrl-grp">
+        <div class="ctrl-top"><label for="ts-sl-x">Horizontal</label><span class="ctrl-val" id="ts-lbl-x">0 px</span></div>
+        <input type="range" class="ctrl-slider" id="ts-sl-x" min="-500" max="500" step="1" value="0" oninput="onTsSlider()">
+      </div>
+      <div class="ctrl-grp">
+        <div class="ctrl-top"><label for="ts-sl-y">Vertical</label><span class="ctrl-val" id="ts-lbl-y">0 px</span></div>
+        <input type="range" class="ctrl-slider" id="ts-sl-y" min="-150" max="150" step="1" value="0" oninput="onTsSlider()">
+      </div>
+    </div>
+    <div class="editor-footer">
+      <button class="btn btn-secondary btn-sm" type="button" onclick="resetTopShelfEditor()"><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i>Reset</button>
+      <button class="btn btn-primary btn-sm" type="button" onclick="closeTopShelfEditor()">Apply</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+const state = {
+  images: { bg: null, logo16t: null, logo1x1: null, splash: null },
+  // Roku / CTV composers
+  composers: {
+    square:  { bgScale: 100, bgOffsetX: 0, bgOffsetY: 0, scale: 80, offsetX: 0, offsetY: 0 },
+    wide16:  { bgScale: 100, bgOffsetX: 0, bgOffsetY: 0, scale: 80, offsetX: 0, offsetY: 0 },
+    appicon: { bgScale: 100, bgOffsetX: 0, bgOffsetY: 0, scale: 80, offsetX: 0, offsetY: 0 }
+  },
+  activeEditor: null,
+  // Apple
+  frontSettings:    { scale: 100, offsetX: 0, offsetY: 0 },
+  topShelfSettings: { scale: 100, offsetX: 0, offsetY: 0 }
+};
+
+const platforms = { roku: true, ctv: true, apple: true };
+const PLATFORM_LABEL = { roku: 'Roku', ctv: 'CTV', apple: 'tvOS' };
+
+const UPLOAD_TYPES = ['logo16t', 'bg', 'logo1x1', 'splash'];
+const LABELS = {
+  logo16t:    '16:9 Logo',
+  bg:         'Background',
+  logo1x1:    '1:1 Logo',
+  splash:     'Splash'
+};
+
+const RATIO_SPECS = {
+  logo16t:    { ratioW: 16, ratioH: 9, tolerance: 0.15 },
+  logo1x1:    { ratioW: 1,  ratioH: 1, tolerance: 0.08 }
+};
+const APPLE_BG = { w: 4640, h: 1440, tolerance: 0.05 };
+
+// Apple tree nodes lit up when each asset is uploaded
+const TREE_IDS = {
+  logo16t:    ['tr-front', 'tr-front-2x', 'tr-as-front', 'tr-menu-closed', 'tr-menu-open'],
+  logo1x1:    ['tr-menu-closed', 'tr-menu-open'],
+  bg:         ['tr-back', 'tr-back-2x', 'tr-ts', 'tr-ts-2x', 'tr-tsw', 'tr-tsw-2x', 'tr-as-back'],
+  splash:     ['tr-splash', 'tr-splash-2x', 'tr-splash-3x']
+};
+
+const usesFlat = () => platforms.roku || platforms.ctv;
+
+// ═══════════════════════════════════════════
+//  PLATFORM SELECTION
+// ═══════════════════════════════════════════
+document.querySelectorAll('#platformGrid input[type=checkbox]').forEach(inp => {
+  inp.addEventListener('change', () => {
+    platforms[inp.value] = inp.checked;
+    inp.closest('.pcard').classList.toggle('selected', inp.checked);
+    applyPlatforms();
+  });
+});
+
+function requirementKind(type) {
+  const apple = platforms.apple, flat = usesFlat();
+  if (type === 'bg') return 'req';
+  if (type === 'logo16t') return apple ? 'req' : (flat ? 'either' : 'opt');
+  if (type === 'logo1x1') return (!apple && flat) ? 'either' : 'opt';
+  return 'opt';
+}
+const REQ_TEXT = { req: 'Required', either: 'Either logo required', opt: 'Optional' };
+
+function pillText(type) {
+  const spec = {
+    logo16t:    '16:9 PNG',
+    bg:         platforms.apple ? '4640×1440 PNG' : 'Any size PNG',
+    logo1x1:    '1:1 PNG',
+    splash:     '16:9, 1920×1080'
+  }[type];
+  return `${spec}, ${REQ_TEXT[requirementKind(type)]}`;
+}
+
+function applyPlatforms() {
+  const chosen = Object.keys(platforms).filter(k => platforms[k]);
+
+  document.querySelectorAll('[data-p]').forEach(el => {
+    el.hidden = !el.dataset.p.split(' ').some(p => platforms[p]);
+  });
+  document.getElementById('workspace').hidden = chosen.length === 0;
+  document.getElementById('emptyState').hidden = chosen.length > 0;
+  document.getElementById('multiNote').hidden = !(platforms.apple && usesFlat());
+
+  UPLOAD_TYPES.forEach(t => {
+    document.getElementById('pill-' + t).textContent = pillText(t);
+    const rcLabel = document.querySelector('#rc-' + t + ' span');
+    if (rcLabel) rcLabel.textContent = LABELS[t] + ({ req: ' (required)', either: ' (either logo required)', opt: '' })[requirementKind(t)];
+    revalidate(t);
+  });
+  document.getElementById('sub-bg').textContent = platforms.apple ? 'Recommended: 4640 × 1440 px' : 'Any size, landscape recommended';
+
+  const rokuOnly = platforms.roku && !platforms.ctv;
+  document.getElementById('flatTreeTitle').textContent =
+    `${rokuOnly ? 'Roku' : platforms.roku ? 'Roku and CTV' : 'CTV'}, flat PNGs, no subfolders`;
+
+  updateFilenamePreview();
+  updateExportSummary();
+  updateReadiness();
+  if (chosen.length) updatePreviews();
+}
+
+function zipFileName() {
+  const name = document.getElementById('assetName').value.trim() || 'MyApp';
+  return (platforms.apple && !usesFlat()) ? `${name}.xcassets.zip` : `${name} new.zip`;
+}
+function updateFilenamePreview() {
+  const name = document.getElementById('assetName').value.trim() || 'MyApp';
+  document.getElementById('nameSuffix').textContent = (platforms.apple && !usesFlat()) ? '.xcassets.zip' : ' new.zip';
+  document.getElementById('filenamePreview').textContent = zipFileName();
+}
+function updateExportSummary() {
+  let png = 0;
+  if (platforms.roku) png += 6;
+  if (platforms.ctv) png += 5;
+  if (usesFlat()) png += 1;
+  if (platforms.apple) png += 2;
+  const parts = [];
+  if (png) parts.push(`${png} PNG file${png > 1 ? 's' : ''}`);
+  if (platforms.apple) parts.push('Images.xcassets');
+  document.getElementById('exportSummary').textContent =
+    parts.length ? `Includes ${parts.join(' and ')}. Export unlocks once the required files are uploaded.` : 'Select a platform to enable export';
+}
+
+// ═══════════════════════════════════════════
+//  CANVAS UTILITIES
+// ═══════════════════════════════════════════
+function makeCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+function dims(img) {
+  if (img instanceof HTMLCanvasElement) return { w: img.width, h: img.height };
+  return { w: img.naturalWidth || img.width, h: img.naturalHeight || img.height };
+}
+// Multi-step halving downscaler - sharper than a single drawImage for large reductions
+function stepDown(src, tw, th) {
+  let cur = src; let { w, h } = dims(src);
+  while (w > tw * 2 || h > th * 2) {
+    const nw = Math.max(Math.ceil(w / 2), tw), nh = Math.max(Math.ceil(h / 2), th);
+    const nx = makeCanvas(nw, nh), ctx = nx.getContext('2d');
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(cur, 0, 0, nw, nh);
+    cur = nx; w = nw; h = nh;
+  }
+  // Always draw to a fresh canvas so a canvas (not an Image) is returned
+  const f = makeCanvas(tw, th), ctx = f.getContext('2d');
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(cur, 0, 0, tw, th);
+  return f;
+}
+function resize(src, tw, th, mode = 'cover') {
+  const { w: sw, h: sh } = dims(src);
+  if (mode === 'cover') {
+    const sc = Math.max(tw / sw, th / sh);
+    const cw = tw / sc, ch = th / sc, cx = (sw - cw) / 2, cy = (sh - ch) / 2;
+    const cr = makeCanvas(Math.round(cw), Math.round(ch)), cctx = cr.getContext('2d');
+    cctx.imageSmoothingEnabled = true; cctx.imageSmoothingQuality = 'high';
+    cctx.drawImage(src, cx, cy, cw, ch, 0, 0, Math.round(cw), Math.round(ch));
+    return stepDown(cr, tw, th);
+  }
+  if (mode === 'contain') {
+    const sc = Math.min(tw / sw, th / sh);
+    const dw = Math.round(sw * sc), dh = Math.round(sh * sc);
+    const scaled = stepDown(src, dw, dh);
+    const c = makeCanvas(tw, th), ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(scaled, Math.round((tw - dw) / 2), Math.round((th - dh) / 2));
+    return c;
+  }
+  return stepDown(src, tw, th);
+}
+function toBlob(canvas) { return new Promise(res => canvas.toBlob(res, 'image/png')); }
+// Fit logo within bounds, centered, fully transparent background (no crop)
+function resizeFit(src, tw, th) {
+  const { w: sw, h: sh } = dims(src);
+  const sc = Math.min(tw / sw, th / sh);
+  const dw = Math.round(sw * sc), dh = Math.round(sh * sc);
+  const c = makeCanvas(tw, th), ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(src, (tw - dw) / 2, (th - dh) / 2, dw, dh);
+  return c;
+}
+
+// ═══════════════════════════════════════════
+//  ROKU / CTV - COMPOSITE RENDERER
+//  bg (cover-filled) + logo (scaled + positioned)
+// ═══════════════════════════════════════════
+function renderComposite(targetW, targetH, composerKey) {
+  const { bg, logo16t, logo1x1 } = state.images;
+  // wide16 + appicon composers use the 16:9 logo; square uses the 1:1 logo
+  const logoSrc = (composerKey === 'wide16' || composerKey === 'appicon') ? (logo16t || logo1x1) : logo1x1;
+  const s = state.composers[composerKey];
+  const c = makeCanvas(targetW, targetH), ctx = c.getContext('2d');
+
+  ctx.fillStyle = '#0A0C14'; ctx.fillRect(0, 0, targetW, targetH);
+  if (bg) {
+    const { w: bw, h: bh } = dims(bg);
+    const coverSc = Math.max(targetW / bw, targetH / bh) * (s.bgScale / 100);
+    const bdw = bw * coverSc, bdh = bh * coverSc;
+    const box = s.bgOffsetX * (targetW / 960), boy = s.bgOffsetY * (targetH / 540);
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(bg, (targetW - bdw) / 2 + box, (targetH - bdh) / 2 + boy, bdw, bdh);
+  }
+  if (logoSrc) {
+    const { w: lw, h: lh } = dims(logoSrc);
+    const baseScale = Math.min(targetW / lw, targetH / lh) * (s.scale / 100);
+    const dw = lw * baseScale, dh = lh * baseScale;
+    const ox = s.offsetX * (targetW / 960), oy = s.offsetY * (targetH / 540);
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(logoSrc, (targetW - dw) / 2 + ox, (targetH - dh) / 2 + oy, dw, dh);
+  }
+  return c;
+}
+
+// App Banner to bg + logo composited
+function get16x9(tw, th) {
+  if (state.images.bg && (state.images.logo16t || state.images.logo1x1)) return renderComposite(tw, th, 'wide16');
+  return makeCanvas(tw, th);
+}
+function getSquare(tw, th) { return renderComposite(tw, th, 'square'); }
+
+// Splash to splash input override OR composited bg + logo at 16:9
+function getSplash(tw, th) {
+  if (state.images.splash) return resize(state.images.splash, tw, th, 'cover');
+  return renderComposite(tw, th, 'wide16');
+}
+
+// Menu Closed to 1:1 logo, transparent only (no bg), fitted to fixed dimensions.
+// Falls back to the 16:9 logo (letterboxed) when no 1:1 logo was uploaded.
+function getMenuClose(tw, th) {
+  const src = state.images.logo1x1 || state.images.logo16t;
+  if (src) return resizeFit(src, tw, th);
+  return makeCanvas(tw, th);
+}
+
+// Native logo export to logo at its original uploaded resolution (no resize)
+function getLogoNative(src) {
+  if (!src) return makeCanvas(1, 1);
+  const { w, h } = dims(src);
+  const c = makeCanvas(w, h), ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(src, 0, 0, w, h);
+  return c;
+}
+
+// Menu Open to 16:9 logo transparent only (no bg), fitted
+function getMenuOpen(tw, th) {
+  const src = state.images.logo16t || state.images.logo1x1;
+  if (src) return resizeFit(src, tw, th);
+  return makeCanvas(tw, th);
+}
+
+// ═══════════════════════════════════════════
+//  DRAG & DROP
+// ═══════════════════════════════════════════
+document.querySelectorAll('.drop-zone').forEach(dz => {
+  const card = dz.closest('.ucard'), type = card.dataset.type;
+  dz.addEventListener('click', () => document.getElementById('fi-' + type).click());
+  dz.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); document.getElementById('fi-' + type).click(); } });
+  dz.addEventListener('dragover', e => { e.preventDefault(); card.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => card.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => { e.preventDefault(); card.classList.remove('drag-over'); const f = e.dataTransfer.files[0]; if (f) ingestFile(f, type); });
+});
+
+// ═══════════════════════════════════════════
+//  FILE HANDLING + VALIDATION
+// ═══════════════════════════════════════════
+function handleFile(evt, type) { const f = evt.target.files[0]; if (f) ingestFile(f, type); }
+function ingestFile(file, type) {
+  if (!file.type.startsWith('image/')) { setValidation(type, 'err', 'Not an image file.'); return; }
+  loadImg(file).then(img => {
+    state.images[type] = img;
+    document.getElementById('pimg-' + type).src = img.src;
+    document.getElementById('pdims-' + type).textContent = `${img.naturalWidth} × ${img.naturalHeight}`;
+    revalidate(type);
+    updateReadiness();
+    updatePreviews();
+    lightTree(type);
+    log('ok', `Loaded ${LABELS[type]}: ${img.naturalWidth}×${img.naturalHeight}`);
+  }).catch(() => {
+    setValidation(type, 'err', 'Failed to read image.');
+    log('err', `Failed to load ${LABELS[type]}`);
+  });
+}
+function loadImg(file) {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = e => { const img = new Image(); img.onload = () => res(img); img.onerror = rej; img.src = e.target.result; };
+    fr.onerror = rej; fr.readAsDataURL(file);
+  });
+}
+function validate(type, img) {
+  const w = img.naturalWidth, h = img.naturalHeight;
+
+  if (type === 'bg' && platforms.apple) {
+    const offW = Math.abs(w - APPLE_BG.w) / APPLE_BG.w, offH = Math.abs(h - APPLE_BG.h) / APPLE_BG.h;
+    if (offW < APPLE_BG.tolerance && offH < APPLE_BG.tolerance) return { pass: true, level: 'ok', msg: `${w}×${h}, dimensions correct` };
+    return { pass: false, level: 'warn', msg: `Apple expects ${APPLE_BG.w}×${APPLE_BG.h}, got ${w}×${h}. Will be cover-cropped.` };
+  }
+
+  const spec = RATIO_SPECS[type];
+  if (spec) {
+    const exp = spec.ratioW / spec.ratioH, act = w / h;
+    if (Math.abs(act - exp) <= spec.tolerance) return { pass: true, level: 'ok', msg: `${w}×${h}, aspect ratio correct` };
+    return { pass: false, level: 'warn', msg: `Expected ${spec.ratioW}:${spec.ratioH}, got ${act.toFixed(2)}:1, will be cover-cropped.` };
+  }
+  return { pass: true, level: 'ok', msg: `${w}×${h}` };
+}
+function revalidate(type) {
+  const img = state.images[type];
+  if (!img) return;
+  const v = validate(type, img);
+  const card = document.getElementById('ucard-' + type);
+  card.classList.remove('state-uploaded', 'state-warn');
+  card.classList.add(v.pass ? 'state-uploaded' : 'state-warn');
+  setValidation(type, v.level, v.msg);
+}
+function setValidation(type, level, msg) {
+  const el = document.getElementById('val-' + type);
+  const icon = { ok: 'ph-check-circle', warn: 'ph-warning', err: 'ph-x-circle' }[level];
+  el.className = 'val-bar show ' + level;
+  el.textContent = '';
+  const i = document.createElement('i');
+  i.className = 'ph ' + icon; i.setAttribute('aria-hidden', 'true');
+  const s = document.createElement('span');
+  s.textContent = msg;
+  el.append(i, s);
+}
+function lightTree(type) {
+  (TREE_IDS[type] || []).forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('ready'); });
+}
+
+// ═══════════════════════════════════════════
+//  READINESS
+// ═══════════════════════════════════════════
+function isReady() {
+  const { bg, logo16t, logo1x1 } = state.images;
+  if (!(platforms.roku || platforms.ctv || platforms.apple) || !bg) return false;
+  if (platforms.apple && !logo16t) return false;
+  if (usesFlat() && !(logo16t || logo1x1)) return false;
+  return true;
+}
+function updateReadiness() {
+  UPLOAD_TYPES.forEach(t => {
+    const rc = document.getElementById('rc-' + t);
+    if (rc) rc.classList.toggle('ready', !!state.images[t]);
+  });
+  document.getElementById('exportBtn').disabled = !isReady();
+}
+
+// ═══════════════════════════════════════════
+//  PREVIEWS
+// ═══════════════════════════════════════════
+function updatePreviews() {
+  if (usesFlat()) updateComposerPreviews();
+  if (platforms.apple) updateAppleOutputPreviews();
+}
+
+function updateComposerPreviews() {
+  renderCprev('cprev-square',  'square',  1,  1);
+  renderCprev('cprev-wide16',  'wide16',  16, 9);
+  renderCprev('cprev-appicon', 'appicon', 1,  1);
+}
+function renderCprev(elId, composerKey, rw, rh) {
+  const { bg, logo16t, logo1x1 } = state.images;
+  const hasContent = composerKey === 'square' ? (bg && logo1x1) : (bg && (logo16t || logo1x1));
+  if (!hasContent) return;
+  const el = document.getElementById(elId);
+  const W = el.clientWidth || 400;
+  const H = Math.min(Math.round(W * rh / rw), 130);
+  el.style.height = H + 'px';
+  el.innerHTML = '';
+  const c = renderComposite(W, H, composerKey);
+  c.style.cssText = 'width:100%;height:100%;display:block;';
+  el.appendChild(c);
+}
+
+function updateAppleOutputPreviews() {
+  const { bg, logo16t, logo1x1 } = state.images;
+
+  // Top Shelf previews - composite of background + transparent logo with settings
+  if (bg || logo16t) {
+    renderTsPreview('opreview-topshelf');
+    renderTsPreview('opreview-topshelf-wide');
+  }
+
+  // Icon composite preview (Back + Front only)
+  if (bg || logo16t) {
+    const composite = makeCanvas(400, 240);
+    const ctx = composite.getContext('2d');
+    if (bg) ctx.drawImage(resize(bg, 400, 240, 'cover'), 0, 0);
+    if (logo16t) ctx.drawImage(renderFrontWithSettings(logo16t, 400, 240), 0, 0);
+    const area = document.getElementById('opreview-icon');
+    area.innerHTML = '';
+    const scaled = resize(composite, area.clientWidth || 360, 132, 'cover');
+    scaled.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+    area.appendChild(scaled);
+  }
+
+  // Menu Closed (no background) - 1:1 logo, or 16:9 logo letterboxed
+  if (logo1x1 || logo16t) {
+    const area = document.getElementById('opreview-menuclosed');
+    area.innerHTML = '';
+    area.appendChild(getMenuClose(264, 264));
+  }
+
+  // Menu Open (no background) - 16:9 logo
+  if (logo16t || logo1x1) {
+    const area = document.getElementById('opreview-menuopen');
+    area.innerHTML = '';
+    area.appendChild(getMenuOpen(480, 270));
+  }
+
+  renderThumb('lthumb-back',  bg,      'cover');
+  renderThumb('lthumb-front', logo16t, 'contain');
+}
+function renderThumb(id, img, mode) {
+  if (!img) return;
+  const el = document.getElementById(id);
+  el.innerHTML = '';
+  const c = resize(img, 200, 72, mode);
+  c.style.cssText = 'width:100%;height:100%;display:block;';
+  el.appendChild(c);
+}
+
+// ═══════════════════════════════════════════
+//  COMPOSER EDITOR MODAL (Roku / CTV)
+// ═══════════════════════════════════════════
+const EDITOR_CFG = {
+  square:  { title: 'Square composer, 1:1',       badge: 'Drives all square icon outputs',          cw: 560, ch: 560 },
+  wide16:  { title: 'Widescreen composer, 16:9',   badge: 'Drives App Banner + Splash outputs',      cw: 800, ch: 450 },
+  appicon: { title: 'App icon composer, 1:1',      badge: 'Drives Roku App_Icon (540×540)',           cw: 560, ch: 560 }
+};
+function openEditor(key) {
+  const { bg, logo16t, logo1x1 } = state.images;
+  const hasContent = key === 'square'
+    ? (bg && logo1x1)
+    : (bg && (logo16t || logo1x1));
+  if (!hasContent) {
+    alert(key === 'square'
+      ? 'Upload Background + 1:1 Logo first.'
+      : 'Upload Background + 16:9 Logo (or 1:1 Logo) first.');
+    return;
+  }
+  state.activeEditor = key;
+  const cfg = EDITOR_CFG[key];
+  document.getElementById('editorTitle').textContent = cfg.title;
+  document.getElementById('editorBadge').textContent = cfg.badge;
+  const canvas = document.getElementById('editorCanvas');
+  canvas.width = cfg.cw; canvas.height = cfg.ch;
+  syncEditorControls(state.composers[key]);
+  document.getElementById('editorOverlay').classList.add('open');
+  drawEditorCanvas();
+}
+function syncEditorControls(s) {
+  document.getElementById('sl-bg-scale').value = s.bgScale;
+  document.getElementById('sl-bg-x').value = s.bgOffsetX;
+  document.getElementById('sl-bg-y').value = s.bgOffsetY;
+  document.getElementById('lbl-bg-scale').textContent = s.bgScale + '%';
+  document.getElementById('lbl-bg-x').textContent = s.bgOffsetX + ' px';
+  document.getElementById('lbl-bg-y').textContent = s.bgOffsetY + ' px';
+  document.getElementById('sl-scale').value = s.scale;
+  document.getElementById('sl-x').value = s.offsetX;
+  document.getElementById('sl-y').value = s.offsetY;
+  document.getElementById('lbl-scale').textContent = s.scale + '%';
+  document.getElementById('lbl-x').textContent = s.offsetX + ' px';
+  document.getElementById('lbl-y').textContent = s.offsetY + ' px';
+}
+function closeEditor() {
+  document.getElementById('editorOverlay').classList.remove('open');
+  updateComposerPreviews();
+}
+function drawEditorCanvas() {
+  const key = state.activeEditor; if (!key) return;
+  const canvas = document.getElementById('editorCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(renderComposite(canvas.width, canvas.height, key), 0, 0);
+}
+function onEditorSlider() {
+  const key = state.activeEditor; if (!key) return;
+  const s = state.composers[key];
+  s.bgScale   = parseInt(document.getElementById('sl-bg-scale').value);
+  s.bgOffsetX = parseInt(document.getElementById('sl-bg-x').value);
+  s.bgOffsetY = parseInt(document.getElementById('sl-bg-y').value);
+  s.scale     = parseInt(document.getElementById('sl-scale').value);
+  s.offsetX   = parseInt(document.getElementById('sl-x').value);
+  s.offsetY   = parseInt(document.getElementById('sl-y').value);
+  syncEditorControls(s);
+  drawEditorCanvas();
+}
+function resetEditor() {
+  const key = state.activeEditor; if (!key) return;
+  state.composers[key] = { bgScale: 100, bgOffsetX: 0, bgOffsetY: 0, scale: 80, offsetX: 0, offsetY: 0 };
+  syncEditorControls(state.composers[key]);
+  drawEditorCanvas();
+}
+
+// ═══════════════════════════════════════════
+//  APPLE - TOP SHELF EDITOR
+// ═══════════════════════════════════════════
+// Composite: background (cover) + transparent logo (contain + position settings)
+function renderTopShelfComposite(targetW, targetH) {
+  const back  = state.images.bg;
+  const front = state.images.logo16t;
+
+  const c   = makeCanvas(targetW, targetH);
+  const ctx = c.getContext('2d');
+
+  if (back) {
+    ctx.drawImage(resize(back, targetW, targetH, 'cover'), 0, 0);
+  } else {
+    ctx.fillStyle = '#0A0C14';
+    ctx.fillRect(0, 0, targetW, targetH);
+  }
+
+  if (front) {
+    const { w: srcW, h: srcH } = dims(front);
+    const scaleF    = state.topShelfSettings.scale / 100;
+    const baseScale = Math.min(targetW / srcW, targetH / srcH) * scaleF;
+    const drawW     = srcW * baseScale;
+    const drawH     = srcH * baseScale;
+    const drawX = (targetW - drawW) / 2 + state.topShelfSettings.offsetX * (targetW / 1920);
+    const drawY = (targetH - drawH) / 2 + state.topShelfSettings.offsetY * (targetH / 720);
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(front, drawX, drawY, drawW, drawH);
+  }
+  return c;
+}
+function renderTsPreview(areaId) {
+  const area = document.getElementById(areaId);
+  const w    = area.clientWidth  || 360;
+  const h    = area.clientHeight || 132;
+  area.innerHTML = '';
+  const c = renderTopShelfComposite(w, h);
+  c.style.cssText = 'width:100%;height:100%;display:block;';
+  area.appendChild(c);
+}
+function drawTsEditorCanvas() {
+  const canvas = document.getElementById('tsEditorCanvas');
+  const ctx    = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(renderTopShelfComposite(canvas.width, canvas.height), 0, 0);
+}
+function syncTsControls() {
+  const s = state.topShelfSettings;
+  document.getElementById('ts-sl-scale').value = s.scale;
+  document.getElementById('ts-sl-x').value     = s.offsetX;
+  document.getElementById('ts-sl-y').value     = s.offsetY;
+  document.getElementById('ts-lbl-scale').textContent = s.scale + '%';
+  document.getElementById('ts-lbl-x').textContent     = s.offsetX + ' px';
+  document.getElementById('ts-lbl-y').textContent     = s.offsetY + ' px';
+}
+function openTopShelfEditor() {
+  const { bg, logo16t } = state.images;
+  if (!(bg || logo16t)) return;
+  document.getElementById('tsEditorOverlay').classList.add('open');
+  syncTsControls();
+  drawTsEditorCanvas();
+}
+function closeTopShelfEditor() {
+  document.getElementById('tsEditorOverlay').classList.remove('open');
+  updatePreviews();
+}
+function onTsSlider() {
+  state.topShelfSettings.scale   = parseInt(document.getElementById('ts-sl-scale').value);
+  state.topShelfSettings.offsetX = parseInt(document.getElementById('ts-sl-x').value);
+  state.topShelfSettings.offsetY = parseInt(document.getElementById('ts-sl-y').value);
+  syncTsControls();
+  drawTsEditorCanvas();
+}
+function resetTopShelfEditor() {
+  state.topShelfSettings = { scale: 100, offsetX: 0, offsetY: 0 };
+  syncTsControls();
+  drawTsEditorCanvas();
+}
+
+// ═══════════════════════════════════════════
+//  APPLE - FRONT LAYER EDITOR
+// ═══════════════════════════════════════════
+function renderFrontWithSettings(src, targetW, targetH) {
+  const { w: srcW, h: srcH } = dims(src);
+  const baseScale = Math.min(targetW / srcW, targetH / srcH) * (state.frontSettings.scale / 100);
+  const drawW = srcW * baseScale;
+  const drawH = srcH * baseScale;
+  const drawX = (targetW - drawW) / 2 + state.frontSettings.offsetX * (targetW / 400);
+  const drawY = (targetH - drawH) / 2 + state.frontSettings.offsetY * (targetH / 240);
+  const c = makeCanvas(targetW, targetH);
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(src, drawX, drawY, drawW, drawH);
+  return c;
+}
+function drawFrontEditorCanvas() {
+  const { bg, logo16t } = state.images;
+  const ctx = document.getElementById('feCanvas').getContext('2d');
+  ctx.clearRect(0, 0, 800, 480);
+  if (bg) {
+    ctx.drawImage(resize(bg, 800, 480, 'cover'), 0, 0);
+  } else {
+    ctx.fillStyle = '#1F2535';
+    ctx.fillRect(0, 0, 800, 480);
+  }
+  if (logo16t) ctx.drawImage(renderFrontWithSettings(logo16t, 800, 480), 0, 0);
+}
+function syncFrontControls() {
+  const s = state.frontSettings;
+  document.getElementById('fe-sl-scale').value = s.scale;
+  document.getElementById('fe-sl-x').value     = s.offsetX;
+  document.getElementById('fe-sl-y').value     = s.offsetY;
+  document.getElementById('fe-lbl-scale').textContent = s.scale + '%';
+  document.getElementById('fe-lbl-x').textContent     = s.offsetX + ' px';
+  document.getElementById('fe-lbl-y').textContent     = s.offsetY + ' px';
+}
+function openFrontEditor() {
+  document.getElementById('frontEditorOverlay').classList.add('open');
+  syncFrontControls();
+  drawFrontEditorCanvas();
+}
+function closeFrontEditor() {
+  document.getElementById('frontEditorOverlay').classList.remove('open');
+  updatePreviews();
+}
+function onFrontSlider() {
+  state.frontSettings.scale   = parseInt(document.getElementById('fe-sl-scale').value);
+  state.frontSettings.offsetX = parseInt(document.getElementById('fe-sl-x').value);
+  state.frontSettings.offsetY = parseInt(document.getElementById('fe-sl-y').value);
+  syncFrontControls();
+  drawFrontEditorCanvas();
+}
+function resetFrontEditor() {
+  state.frontSettings = { scale: 100, offsetX: 0, offsetY: 0 };
+  syncFrontControls();
+  drawFrontEditorCanvas();
+}
+
+// ═══════════════════════════════════════════
+//  LOG
+// ═══════════════════════════════════════════
+const LOG_ICON = { ok: 'ph-check', err: 'ph-x', warn: 'ph-warning', proc: 'ph-arrow-right' };
+function log(type, msg) {
+  const panel = document.getElementById('logPanel');
+  panel.classList.add('show');
+  const row = document.createElement('div');
+  row.className = 'log-row ' + type + (/^\s{2,}/.test(msg) ? ' sub' : '');
+  const t = document.createElement('span');
+  t.className = 'log-t'; t.textContent = new Date().toTimeString().slice(0, 8);
+  row.appendChild(t);
+  if (LOG_ICON[type]) {
+    const i = document.createElement('i');
+    i.className = 'ph ' + LOG_ICON[type]; i.setAttribute('aria-hidden', 'true');
+    row.appendChild(i);
+  }
+  const m = document.createElement('span');
+  m.textContent = msg.trim();
+  row.appendChild(m);
+  panel.appendChild(row); panel.scrollTop = panel.scrollHeight;
+}
+
+// ═══════════════════════════════════════════
+//  EXPORT - ANDROID / FIRE TV  (flat, no subdir)
+// ═══════════════════════════════════════════
+async function exportAndroid(zip, n) {
+  log('head', 'Android / Fire TV');
+
+  log('proc', `  App_Icon_512x512_${n} 2.png…`);
+  zip.file(`App_Icon_512x512_${n} 2.png`, await toBlob(getSquare(512, 512)));
+  log('ok', '  512×512');
+
+  log('proc', `  App_Menu_Closed_256x256_${n} 1 & 2.png…`);
+  zip.file(`App_Menu_Closed_256x256_${n} 1.png`, await toBlob(getSquare(256, 256)));
+  zip.file(`App_Menu_Closed_256x256_${n} 2.png`, await toBlob(getMenuClose(256, 256)));
+  log('ok', '  256×256 ×2');
+
+  log('proc', `  App_Menu_Open_256x144_${n} 2.png…`);
+  zip.file(`App_Menu_Open_256x144_${n} 2.png`, await toBlob(getMenuOpen(256, 144)));
+  log('ok', '  256×144');
+
+  log('proc', `  App_Banner_320x180_${n} 1.png…`);
+  zip.file(`App_Banner_320x180_${n} 1.png`, await toBlob(get16x9(320, 180)));
+  log('ok', '  320×180');
+
+  log('ok', '  Android / Fire TV, 5 files done');
+}
+
+// ═══════════════════════════════════════════
+//  EXPORT - ROKU  (flat, no subdir)
+// ═══════════════════════════════════════════
+async function exportRoku(zip, n) {
+  log('head', 'Roku');
+
+  // App Icon 540×540 - independently editable appicon composer (bg + 16:9 logo on 1:1 canvas)
+  log('proc', `  App_Icon_${n}.png (App Icon composer, 1:1)…`);
+  zip.file(`App_Icon_${n}.png`, await toBlob(renderComposite(540, 540, 'appicon')));
+  log('ok', '  540×540');
+
+  log('proc', `  App_Menu_Closed_1080x1080_${n} 1 & 2.png…`);
+  zip.file(`App_Menu_Closed_1080x1080_${n} 1.png`, await toBlob(getSquare(1080, 1080)));
+  zip.file(`App_Menu_Closed_1080x1080_${n} 2.png`, await toBlob(getMenuClose(1080, 1080)));
+  log('ok', '  1080×1080 ×2');
+
+  log('proc', `  App_Menu_Open_1920x1080_${n} 1.png…`);
+  zip.file(`App_Menu_Open_1920x1080_${n} 1.png`, await toBlob(getMenuOpen(1920, 1080)));
+  log('ok', '  1920×1080');
+
+  // App Logo Menu Closed + Open - logo at native uploaded resolution (no resize)
+  log('proc', `  App_Logo_Menu_Closed/Open_${n}.png (native res)…`);
+  zip.file(`App_Logo_Menu_Closed_${n}.png`, await toBlob(getLogoNative(state.images.logo1x1)));
+  zip.file(`App_Logo_Menu_Open_${n}.png`,   await toBlob(getLogoNative(state.images.logo16t)));
+  log('ok', '  Logo menu closed + open (native resolution)');
+
+  log('ok', '  Roku, 6 files done');
+}
+
+// ═══════════════════════════════════════════
+//  EXPORT - APPLE tvOS  (Images.xcassets + Menu Closed PNG)
+// ═══════════════════════════════════════════
+const j = obj => JSON.stringify(obj, null, 2);
+
+const cjRoot = () => j({ info: { author: 'xcode', version: 1 } });
+
+// Brand Assets.brandassets/Contents.json - includes size field on every asset
+const cjBrandassets = () => j({
+  assets: [
+    { filename: 'App Icon - App Store.imagestack', idiom: 'tv', role: 'primary-app-icon', size: '1280x768' },
+    { filename: 'App Icon.imagestack',             idiom: 'tv', role: 'primary-app-icon', size: '400x240'  },
+    { filename: 'Top Shelf Image Wide.imageset',   idiom: 'tv', role: 'top-shelf-image-wide', size: '2320x720' },
+    { filename: 'Top Shelf Image.imageset',        idiom: 'tv', role: 'top-shelf-image',      size: '1920x720' }
+  ],
+  info: { author: 'xcode', version: 1 }
+});
+
+// *.imagestack/Contents.json - Front listed before Back, no Middle
+const cjImagestack = () => j({
+  info: { author: 'xcode', version: 1 },
+  layers: [
+    { filename: 'Front.imagestacklayer' },
+    { filename: 'Back.imagestacklayer'  }
+  ]
+});
+
+// *.imagestacklayer/Contents.json - minimal, no images array
+const cjImagestacklayer = () => j({ info: { author: 'xcode', version: 1 } });
+
+// Home icon layer imageset - 1x + 2x
+const cjLayerImageset = (name1x, name2x) => j({
+  images: [
+    { filename: name1x, idiom: 'tv', scale: '1x' },
+    { filename: name2x, idiom: 'tv', scale: '2x' }
+  ],
+  info: { author: 'xcode', version: 1 }
+});
+
+// App Store layer imageset - no scale attribute
+const cjAppStoreLayerImageset = (filename) => j({
+  images: [{ filename, idiom: 'tv' }],
+  info: { author: 'xcode', version: 1 }
+});
+
+// Top Shelf imagesets - 1x + 2x
+const cjTopShelfImageset = (name1x, name2x) => j({
+  images: [
+    { filename: name1x, idiom: 'tv', scale: '1x' },
+    { filename: name2x, idiom: 'tv', scale: '2x' }
+  ],
+  info: { author: 'xcode', version: 1 }
+});
+
+// launchscreen.imageset/Contents.json - 1x / 2x / 3x universal (same file for all)
+const cjLaunchscreen = (f1, f2, f3) => j({
+  images: [
+    { filename: f1, idiom: 'universal', scale: '1x' },
+    { filename: f2, idiom: 'universal', scale: '2x' },
+    { filename: f3, idiom: 'universal', scale: '3x' }
+  ],
+  info: { author: 'xcode', version: 1 }
+});
+
+async function exportApple(zip, n) {
+  log('head', 'Apple tvOS');
+  const { bg, logo16t: logo } = state.images;
+  const splash = state.images.splash || bg; // fall back to background if no splash
+
+  const root = zip.folder('Images.xcassets');
+  root.file('Contents.json', cjRoot());
+  const brand = root.folder('Brand Assets.brandassets');
+  brand.file('Contents.json', cjBrandassets());
+  log('ok', '  Images.xcassets + Brand Assets.brandassets Contents.json');
+
+  // App Icon - App Store.imagestack (1280×768, no scale attr)
+  const asStack = brand.folder('App Icon - App Store.imagestack');
+  asStack.file('Contents.json', cjImagestack());
+  {
+    const asF = asStack.folder('Front.imagestacklayer');
+    asF.file('Contents.json', cjImagestacklayer());
+    const asFC = asF.folder('Content.imageset');
+    asFC.file('Contents.json', cjAppStoreLayerImageset('appstore_front.png'));
+    log('proc', '  App Store Front to 1280×768…');
+    asFC.file('appstore_front.png', await toBlob(renderFrontWithSettings(logo, 1280, 768)));
+    log('ok',   '  App Store/Front/Content.imageset/appstore_front.png');
+  }
+  {
+    // Back layer is pure background only - tvOS composites layers at runtime
+    const asB = asStack.folder('Back.imagestacklayer');
+    asB.file('Contents.json', cjImagestacklayer());
+    const asBC = asB.folder('Content.imageset');
+    asBC.file('Contents.json', cjAppStoreLayerImageset('appstore_background.png'));
+    log('proc', '  App Store Back to 1280×768 (background only)…');
+    asBC.file('appstore_background.png', await toBlob(resize(bg, 1280, 768, 'cover')));
+    log('ok',   '  App Store/Back/Content.imageset/appstore_background.png');
+  }
+
+  // App Icon.imagestack (400×240 @1x, 800×480 @2x)
+  const homeStack = brand.folder('App Icon.imagestack');
+  homeStack.file('Contents.json', cjImagestack());
+  {
+    const hF = homeStack.folder('Front.imagestacklayer');
+    hF.file('Contents.json', cjImagestacklayer());
+    const hFC = hF.folder('Content.imageset');
+    hFC.file('Contents.json', cjLayerImageset('front.png', 'front_2x.png'));
+    log('proc', '  Home Icon Front to 400×240 + 800×480…');
+    hFC.file('front.png',    await toBlob(renderFrontWithSettings(logo, 400, 240)));
+    hFC.file('front_2x.png', await toBlob(renderFrontWithSettings(logo, 800, 480)));
+    log('ok', '  App Icon/Front/Content.imageset/front.png + front_2x.png');
+  }
+  {
+    const hB = homeStack.folder('Back.imagestacklayer');
+    hB.file('Contents.json', cjImagestacklayer());
+    const hBC = hB.folder('Content.imageset');
+    hBC.file('Contents.json', cjLayerImageset('background.png', 'background_2x.png'));
+    log('proc', '  Home Icon Back to 400×240 + 800×480…');
+    hBC.file('background.png',    await toBlob(resize(bg, 400, 240, 'cover')));
+    hBC.file('background_2x.png', await toBlob(resize(bg, 800, 480, 'cover')));
+    log('ok', '  App Icon/Back/Content.imageset/background.png + background_2x.png');
+  }
+
+  // Top Shelf Image.imageset (1920×720 @1x, 3840×1440 @2x)
+  {
+    const ts = brand.folder('Top Shelf Image.imageset');
+    ts.file('Contents.json', cjTopShelfImageset('topshelf.png', 'topshelf_2x.png'));
+    log('proc', '  Top Shelf to 1920×720 + 3840×1440 (background + logo composite)…');
+    ts.file('topshelf.png',    await toBlob(renderTopShelfComposite(1920, 720)));
+    ts.file('topshelf_2x.png', await toBlob(renderTopShelfComposite(3840, 1440)));
+    log('ok', '  Top Shelf Image/topshelf.png + topshelf_2x.png');
+  }
+
+  // Top Shelf Image Wide.imageset (2320×720 @1x, 4640×1440 @2x)
+  {
+    const tsw = brand.folder('Top Shelf Image Wide.imageset');
+    tsw.file('Contents.json', cjTopShelfImageset('topshelf_wide.png', 'topshelf_wide_2x.png'));
+    log('proc', '  Top Shelf Wide to 2320×720 + 4640×1440 (background + logo composite)…');
+    tsw.file('topshelf_wide.png',    await toBlob(renderTopShelfComposite(2320, 720)));
+    tsw.file('topshelf_wide_2x.png', await toBlob(renderTopShelfComposite(4640, 1440)));
+    log('ok', '  Top Shelf Wide/topshelf_wide.png + topshelf_wide_2x.png');
+  }
+
+  // launchscreen.imageset (same PNG for 1x / 2x / 3x)
+  {
+    const ls = root.folder('launchscreen.imageset');
+    ls.file('Contents.json', cjLaunchscreen('splash.png', 'splash_2x.png', 'splash_3x.png'));
+    log('proc', '  Launch Screen to 1920×1080 (Apple tvOS required size)…');
+    const blob = await toBlob(resize(splash, 1920, 1080, 'cover'));
+    ls.file('splash.png', blob); ls.file('splash_2x.png', blob); ls.file('splash_3x.png', blob);
+    log('ok', '  launchscreen.imageset/splash.png + _2x + _3x (1920×1080)');
+  }
+
+  // Menu Closed 1080×1080 - logo only, no background. Lives beside Images.xcassets, not inside it.
+  log('proc', `  App_Menu_Closed_1080x1080_${n}.png (no background)…`);
+  if (!state.images.logo1x1) log('warn', '  No 1:1 logo uploaded. Using the 16:9 logo, letterboxed.');
+  zip.file(`App_Menu_Closed_1080x1080_${n}.png`, await toBlob(getMenuClose(1080, 1080)));
+  log('ok', '  1080×1080 menu closed (transparent)');
+
+  // Menu Open 1920×1080 - 16:9 logo only, no background. Also lives beside Images.xcassets.
+  log('proc', `  App_Menu_Open_1920x1080_${n}.png (no background)…`);
+  zip.file(`App_Menu_Open_1920x1080_${n}.png`, await toBlob(getMenuOpen(1920, 1080)));
+  log('ok', '  1920×1080 menu open (transparent)');
+
+  log('ok', '  Apple tvOS, Images.xcassets + 2 PNGs done');
+}
+
+// ═══════════════════════════════════════════
+//  MAIN EXPORT
+// ═══════════════════════════════════════════
+async function runExport() {
+  if (typeof JSZip === 'undefined') { log('err', 'JSZip did not load. Check your internet connection.'); return; }
+  const btn = document.getElementById('exportBtn');
+  const idleHtml = btn.innerHTML;
+  btn.disabled = true; btn.classList.add('processing');
+  btn.innerHTML = '<i class="ph ph-circle-notch spin" aria-hidden="true"></i>Exporting…';
+  const chosen = Object.keys(platforms).filter(k => platforms[k]).map(k => PLATFORM_LABEL[k]).join(' + ');
+  log('proc', `Starting asset generation (${chosen})…`);
+  try {
+    const zip = new JSZip();
+    const name = (document.getElementById('assetName').value.trim() || 'MyApp');
+    if (platforms.ctv)   await exportAndroid(zip, name);
+    if (platforms.roku)  await exportRoku(zip, name);
+    if (usesFlat()) {
+      // Shared splash - exported once for Roku + CTV
+      log('proc', `  ${name}-Splash.png…`);
+      zip.file(`${name}-Splash.png`, await toBlob(getSplash(1920, 1080)));
+      log('ok', '  Splash 1920×1080');
+    }
+    if (platforms.apple) await exportApple(zip, name);
+
+    log('proc', '  Packaging ZIP…');
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+    const zipName = zipFileName();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = zipName;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    log('ok', `Downloaded: ${zipName} (${(blob.size / 1024).toFixed(0)} KB)`);
+    if (platforms.apple) log('ok', '    Unzip, then drag Images.xcassets into the Xcode project navigator.');
+  } catch (err) {
+    log('err', `${err.message}`); console.error(err);
+  } finally {
+    btn.classList.remove('processing');
+    btn.innerHTML = idleHtml;
+    updateReadiness();
+  }
+}
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+applyPlatforms();
+
+</script>
+</body>
+</html>

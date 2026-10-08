@@ -95,7 +95,7 @@
     .val-bar.err{color:var(--red);background:var(--red-dim)}
 
     /* COMPOSERS */
-    .composer-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:44px}
+    .composer-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:44px}
     .ccard{background:var(--bg-700);border:1px solid var(--border-subtle);border-radius:var(--r-lg);overflow:hidden}
     .ccard-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border-subtle)}
     .ccard-title{font-family:var(--font-display);font-size:17px;font-weight:700;letter-spacing:0.02em}
@@ -209,6 +209,7 @@
     @media(max-width:820px){
       header{padding:0 20px}main{padding:32px 20px 80px}
       .upload-grid,.composer-grid,.platform-grid{grid-template-columns:1fr}
+      .composer-grid{grid-template-columns:1fr}
       .hero h1{font-size:36px}
       .export-panel{flex-direction:column}
     }
@@ -363,15 +364,14 @@
     <!-- Square 1:1 Composer -->
     <div class="ccard">
       <div class="ccard-head">
-        <div><div class="ccard-title">Square · 1:1</div><div class="ccard-sub">Background + 1:1 Logo → all square icon outputs</div></div>
+        <div><div class="ccard-title">Square · 1:1</div><div class="ccard-sub">Background + 1:1 Logo → square icon &amp; menu outputs</div></div>
       </div>
       <div class="ccard-preview" id="cprev-square"><span class="ccard-empty">Upload Background + 1:1 Logo to preview</span></div>
       <div class="ccard-footer">
         <div class="ccard-outputs">
           <span class="out-badge" style="color:var(--android)">Android 512×512</span>
           <span class="out-badge" style="color:var(--android)">256×256</span>
-          <span class="out-badge" style="color:var(--roku)">Roku 540×405</span>
-          <span class="out-badge" style="color:var(--roku)">1080×1080</span>
+          <span class="out-badge" style="color:var(--roku)">Roku 1080×1080</span>
         </div>
         <button class="edit-btn" onclick="openEditor('square')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
@@ -383,7 +383,7 @@
     <!-- 16:9 Composer -->
     <div class="ccard">
       <div class="ccard-head">
-        <div><div class="ccard-title">Widescreen · 16:9</div><div class="ccard-sub">Background + 16:9 Logo → App Banner &amp; Splash (composited with bg)</div></div>
+        <div><div class="ccard-title">Widescreen · 16:9</div><div class="ccard-sub">Background + 16:9 Logo → App Banner &amp; Splash</div></div>
       </div>
       <div class="ccard-preview" id="cprev-wide16"><span class="ccard-empty">Upload Background + 16:9 Logo to preview</span></div>
       <div class="ccard-footer">
@@ -393,6 +393,23 @@
           <span class="out-badge" style="color:var(--roku)">Roku Splash 1920×1080</span>
         </div>
         <button class="edit-btn" onclick="openEditor('wide16')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
+          Edit
+        </button>
+      </div>
+    </div>
+
+    <!-- App Icon Composer (1:1 square — bg + 16:9 logo) -->
+    <div class="ccard">
+      <div class="ccard-head">
+        <div><div class="ccard-title">App Icon · 1:1</div><div class="ccard-sub">Background + 16:9 Logo on 1:1 square → Roku App_Icon</div></div>
+      </div>
+      <div class="ccard-preview" id="cprev-appicon"><span class="ccard-empty">Upload Background + 16:9 Logo to preview</span></div>
+      <div class="ccard-footer">
+        <div class="ccard-outputs">
+          <span class="out-badge" style="color:var(--roku)">Roku App_Icon 540×540</span>
+        </div>
+        <button class="edit-btn" onclick="openEditor('appicon')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
           Edit
         </button>
@@ -409,15 +426,15 @@
   </div>
   <div class="tree-wrap" style="border-radius:var(--r);margin-bottom:44px">
     <div class="tree-row"><span class="t-dir">{name} new.zip &nbsp;·&nbsp; 12 files · flat · no subfolders · Android / Fire TV + Roku</span></div>
-    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-android">Android_App_Icon_512x512_{name} 2.png</span><span class="t-pipe"> ← 512×512 · bg+logo</span></div>
-    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-android">Android_App_Menu_Closed_256x256_{name} 1.png</span><span class="t-pipe"> ← 256×256 · bg+logo</span></div>
-    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-android">Android_App_Menu_Closed_256x256_{name} 2.png</span><span class="t-pipe"> ← 256×256 · logo only (transparent)</span></div>
-    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-android">Android_App_Menu_Open_256x144_{name} 2.png</span><span class="t-pipe"> ← 256×144 · logo only (transparent)</span></div>
+    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-android">App_Icon_512x512_{name} 2.png</span><span class="t-pipe"> ← 512×512 · bg+logo</span></div>
+    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-android">App_Menu_Closed_256x256_{name} 1.png</span><span class="t-pipe"> ← 256×256 · bg+logo</span></div>
+    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-android">App_Menu_Closed_256x256_{name} 2.png</span><span class="t-pipe"> ← 256×256 · logo only (transparent)</span></div>
+    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-android">App_Menu_Open_256x144_{name} 2.png</span><span class="t-pipe"> ← 256×144 · logo only (transparent)</span></div>
     <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-android">App_Banner_320x180_{name} 1.png</span><span class="t-pipe"> ← 320×180 · bg+logo</span></div>
-    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-roku">App_Icon_{name}.png</span><span class="t-pipe"> ← 540×405 · bg+logo (4:3 crop)</span></div>
-    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-roku">Android_App_Menu_Closed_1080x1080_{name} 1.png</span><span class="t-pipe"> ← 1080×1080 · bg+logo</span></div>
-    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-roku">Android_App_Menu_Closed_1080x1080_{name} 2.png</span><span class="t-pipe"> ← 1080×1080 · logo only (transparent)</span></div>
-    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-roku">Android_App_Menu_Open_1920x1080_{name} 1.png</span><span class="t-pipe"> ← 1920×1080 · logo only (transparent)</span></div>
+    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-roku">App_Icon_{name}.png</span><span class="t-pipe"> ← 540×540 · bg + 16:9 logo · 1:1 square</span></div>
+    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-roku">App_Menu_Closed_1080x1080_{name} 1.png</span><span class="t-pipe"> ← 1080×1080 · bg+logo</span></div>
+    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-roku">App_Menu_Closed_1080x1080_{name} 2.png</span><span class="t-pipe"> ← 1080×1080 · logo only (transparent)</span></div>
+    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-roku">App_Menu_Open_1920x1080_{name} 1.png</span><span class="t-pipe"> ← 1920×1080 · logo only (transparent)</span></div>
     <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-roku">App_Logo_Menu_Closed_{name}.png</span><span class="t-pipe"> ← native res · 1:1 logo as-uploaded</span></div>
     <div class="tree-row"><span class="t-pipe">├── </span><span class="t-file t-roku">App_Logo_Menu_Open_{name}.png</span><span class="t-pipe"> ← native res · 16:9 logo as-uploaded</span></div>
     <div class="tree-row"><span class="t-pipe">└── </span><span class="t-file" style="color:var(--amber)">{name}-Splash.png</span><span class="t-pipe"> ← 1920×1080 · bg+logo</span></div>
@@ -511,8 +528,9 @@
 const state = {
   images: { bg: null, logo16t: null, logo1x1: null, splash: null },
   composers: {
-    square: { bgScale: 100, bgOffsetX: 0, bgOffsetY: 0, scale: 80, offsetX: 0, offsetY: 0 },
-    wide16: { bgScale: 100, bgOffsetX: 0, bgOffsetY: 0, scale: 80, offsetX: 0, offsetY: 0 }
+    square:  { bgScale: 100, bgOffsetX: 0, bgOffsetY: 0, scale: 80, offsetX: 0, offsetY: 0 },
+    wide16:  { bgScale: 100, bgOffsetX: 0, bgOffsetY: 0, scale: 80, offsetX: 0, offsetY: 0 },
+    appicon: { bgScale: 100, bgOffsetX: 0, bgOffsetY: 0, scale: 80, offsetX: 0, offsetY: 0 }
   },
   activeEditor: null
 };
@@ -576,8 +594,8 @@ function resizeFit(src, tw, th) {
 // ═══════════════════════════════════════════
 function renderComposite(targetW, targetH, composerKey) {
   const { bg, logo16t, logo1x1 } = state.images;
-  // wide16 composer uses transparent 16:9 logo; square uses 1:1 logo
-  const logoSrc = composerKey === 'wide16' ? (logo16t || logo1x1) : logo1x1;
+  // wide16 + appicon composers use 16:9 logo; square uses 1:1 logo
+  const logoSrc = (composerKey === 'wide16' || composerKey === 'appicon') ? (logo16t || logo1x1) : logo1x1;
   const s = state.composers[composerKey];
   const c = makeCanvas(targetW, targetH), ctx = c.getContext('2d');
 
@@ -703,12 +721,13 @@ function updateReadiness() {
   document.getElementById('exportBtn').disabled = !(imgs.bg && hasLogo);
 }
 function updateComposerPreviews() {
-  renderCprev('cprev-square', 'square', 1, 1);
-  renderCprev('cprev-wide16', 'wide16', 16, 9);
+  renderCprev('cprev-square',  'square',  1,  1);
+  renderCprev('cprev-wide16',  'wide16',  16, 9);
+  renderCprev('cprev-appicon', 'appicon', 1,  1);
 }
 function renderCprev(elId, composerKey, rw, rh) {
   const { bg, logo16t, logo1x1 } = state.images;
-  const hasContent = composerKey === 'wide16' ? (bg && (logo16t || logo1x1)) : (bg && logo1x1);
+  const hasContent = composerKey === 'square' ? (bg && logo1x1) : (bg && (logo16t || logo1x1));
   if (!hasContent) return;
   const el = document.getElementById(elId);
   const W = el.clientWidth || 400;
@@ -728,16 +747,19 @@ function updateFilenamePreview() {
 //  EDITOR MODAL
 // ═══════════════════════════════════════════
 const EDITOR_CFG = {
-  square: { title: 'Square Composer · 1:1', badge: 'Drives all square icon outputs', cw: 560, ch: 560 },
-  wide16: { title: 'Widescreen Composer · 16:9', badge: 'Drives App Banner + Splash outputs', cw: 800, ch: 450 }
+  square:  { title: 'Square Composer · 1:1',       badge: 'Drives all square icon outputs',          cw: 560, ch: 560 },
+  wide16:  { title: 'Widescreen Composer · 16:9',   badge: 'Drives App Banner + Splash outputs',      cw: 800, ch: 450 },
+  appicon: { title: 'App Icon Composer · 1:1',      badge: 'Drives Roku App_Icon (540×540)',           cw: 560, ch: 560 }
 };
 function openEditor(key) {
   const { bg, logo16t, logo1x1 } = state.images;
-  const hasContent = key === 'wide16' ? (bg && (logo16t || logo1x1)) : (bg && logo1x1);
+  const hasContent = key === 'square'
+    ? (bg && logo1x1)
+    : (bg && (logo16t || logo1x1));
   if (!hasContent) {
-    alert(key === 'wide16'
-      ? 'Upload Background + 16:9 Logo (or 1:1 Logo) first.'
-      : 'Upload Background + 1:1 Logo first.');
+    alert(key === 'square'
+      ? 'Upload Background + 1:1 Logo first.'
+      : 'Upload Background + 16:9 Logo (or 1:1 Logo) first.');
     return;
   }
   state.activeEditor = key;
@@ -828,19 +850,19 @@ async function exportAndroid(zip, n) {
   log('proc', '  ── 🤖 Android / Fire TV ──');
 
   // App Icon 512×512 — bg + logo composited
-  log('proc', `  ⟳  Android_App_Icon_512x512_${n} 2.png…`);
-  zip.file(`Android_App_Icon_512x512_${n} 2.png`, await toBlob(getSquare(512, 512)));
+  log('proc', `  ⟳  App_Icon_512x512_${n} 2.png…`);
+  zip.file(`App_Icon_512x512_${n} 2.png`, await toBlob(getSquare(512, 512)));
   log('ok', '  ✓  512×512');
 
   // Menu Close 256×256 — variant 1 (bg+logo) + variant 2 (logo only)
-  log('proc', `  ⟳  Android_App_Menu_Closed_256x256_${n} 1 & 2.png…`);
-  zip.file(`Android_App_Menu_Closed_256x256_${n} 1.png`, await toBlob(getSquare(256, 256)));
-  zip.file(`Android_App_Menu_Closed_256x256_${n} 2.png`, await toBlob(getMenuClose(256, 256)));
+  log('proc', `  ⟳  App_Menu_Closed_256x256_${n} 1 & 2.png…`);
+  zip.file(`App_Menu_Closed_256x256_${n} 1.png`, await toBlob(getSquare(256, 256)));
+  zip.file(`App_Menu_Closed_256x256_${n} 2.png`, await toBlob(getMenuClose(256, 256)));
   log('ok', '  ✓  256×256 ×2');
 
   // Menu Open 256×144 — logo only (transparent)
-  log('proc', `  ⟳  Android_App_Menu_Open_256x144_${n} 2.png…`);
-  zip.file(`Android_App_Menu_Open_256x144_${n} 2.png`, await toBlob(getMenuOpen(256, 144)));
+  log('proc', `  ⟳  App_Menu_Open_256x144_${n} 2.png…`);
+  zip.file(`App_Menu_Open_256x144_${n} 2.png`, await toBlob(getMenuOpen(256, 144)));
   log('ok', '  ✓  256×144');
 
   // App Banner 320×180 — bg + logo composited
@@ -857,20 +879,20 @@ async function exportAndroid(zip, n) {
 async function exportRoku(zip, n) {
   log('proc', '  ── 📺 Roku ──');
 
-  // App Icon 540×405 — bg + logo, 4:3 cover-crop
-  log('proc', `  ⟳  App_Icon_${n}.png…`);
-  zip.file(`App_Icon_${n}.png`, await toBlob(getSquare(540, 405)));
-  log('ok', '  ✓  540×405');
+  // App Icon 540×540 — independently editable appicon composer (bg + 16:9 logo on 1:1 canvas)
+  log('proc', `  ⟳  App_Icon_${n}.png (App Icon composer, 1:1)…`);
+  zip.file(`App_Icon_${n}.png`, await toBlob(renderComposite(540, 540, 'appicon')));
+  log('ok', '  ✓  540×540');
 
   // Menu Closed 1080×1080 — variant 1 (bg+logo) + variant 2 (logo only)
-  log('proc', `  ⟳  Android_App_Menu_Closed_1080x1080_${n} 1 & 2.png…`);
-  zip.file(`Android_App_Menu_Closed_1080x1080_${n} 1.png`, await toBlob(getSquare(1080, 1080)));
-  zip.file(`Android_App_Menu_Closed_1080x1080_${n} 2.png`, await toBlob(getMenuClose(1080, 1080)));
+  log('proc', `  ⟳  App_Menu_Closed_1080x1080_${n} 1 & 2.png…`);
+  zip.file(`App_Menu_Closed_1080x1080_${n} 1.png`, await toBlob(getSquare(1080, 1080)));
+  zip.file(`App_Menu_Closed_1080x1080_${n} 2.png`, await toBlob(getMenuClose(1080, 1080)));
   log('ok', '  ✓  1080×1080 ×2');
 
   // Menu Open 1920×1080 — logo only (transparent)
-  log('proc', `  ⟳  Android_App_Menu_Open_1920x1080_${n} 1.png…`);
-  zip.file(`Android_App_Menu_Open_1920x1080_${n} 1.png`, await toBlob(getMenuOpen(1920, 1080)));
+  log('proc', `  ⟳  App_Menu_Open_1920x1080_${n} 1.png…`);
+  zip.file(`App_Menu_Open_1920x1080_${n} 1.png`, await toBlob(getMenuOpen(1920, 1080)));
   log('ok', '  ✓  1920×1080');
 
   // App Logo Menu Closed + Open — logo at native uploaded resolution (no resize)
@@ -913,7 +935,7 @@ async function runExport() {
     log('err', `✕  ${err.message}`); console.error(err);
   } finally {
     btn.disabled = false; btn.classList.remove('processing');
-    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg> Export Selected Platforms`;
+    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg> Export All Platforms`;
     updateReadiness();
   }
 }
