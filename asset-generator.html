@@ -161,7 +161,6 @@
     .t-file { color: var(--text); }
     .t-file.ready { color: var(--ok); }
     .t-note { color: var(--text-2); white-space: pre; }
-    .tree-sep { height: 1px; background: var(--border); margin: 8px 0; }
     .t-tag { margin-left: 10px; padding: 0 5px; font-size: 10px; line-height: 16px; color: var(--text-2); border: 1px solid var(--border-strong); border-radius: var(--r); }
 
     /* ── Export ── */
@@ -303,7 +302,7 @@
         <input type="checkbox" value="apple" checked>
         <span class="pcard-top">
           <i class="ph ph-apple-logo pcard-icon" aria-hidden="true"></i>
-          <span class="pcard-title"><strong>Apple</strong><small>tvOS, Images.xcassets and 2 PNGs</small></span>
+          <span class="pcard-title"><strong>Apple</strong><small>tvOS, Images.xcassets folder</small></span>
           <span class="pcard-box"><i class="ph ph-check" aria-hidden="true"></i></span>
         </span>
         <dl class="pcard-specs">
@@ -572,12 +571,13 @@
     <div class="sec-head">
       <h2>File structure</h2>
       <p>What the ZIP will contain.</p>
-      <p id="multiNote" hidden>Images.xcassets and the flat PNG files below sit together in the same ZIP.</p>
+      <p id="multiNote" hidden>The ZIP holds two folders: Images.xcassets and Roku+Android.</p>
     </div>
 
     <div class="tree-block" data-p="roku ctv">
       <h3 id="flatTreeTitle">Flat PNGs</h3>
       <div class="tree-wrap">
+        <div class="tree-row"><span class="t-root" id="flatRoot">Roku+Android</span><span class="t-dir">/</span></div>
         <div class="tree-row" data-p="ctv"><span class="t-pipe">├── </span><span class="t-file">App_Icon_512x512_{name} 2.png</span><span class="t-note">  512×512, bg and logo</span><span class="t-tag">CTV</span></div>
         <div class="tree-row" data-p="ctv"><span class="t-pipe">├── </span><span class="t-file">App_Menu_Closed_256x256_{name} 1.png</span><span class="t-note">  256×256, bg and logo</span><span class="t-tag">CTV</span></div>
         <div class="tree-row" data-p="ctv"><span class="t-pipe">├── </span><span class="t-file">App_Menu_Closed_256x256_{name} 2.png</span><span class="t-note">  256×256, logo only (transparent)</span><span class="t-tag">CTV</span></div>
@@ -595,11 +595,8 @@
 
     <div class="tree-block" data-p="apple">
       <h3>Apple tvOS, ready for Xcode</h3>
-      <p class="sub-note">The two menu PNGs sit next to Images.xcassets, not inside it.</p>
+      <p class="sub-note">Menu Closed (1080 × 1080) and Menu Open (1920 × 1080) are imagesets inside Images.xcassets.</p>
       <div class="tree-wrap">
-        <div class="tree-row"><span class="t-file" id="tr-menu-closed">App_Menu_Closed_1080x1080_{name}.png</span><span class="t-note">  1080×1080, 1:1 logo only, no background</span></div>
-        <div class="tree-row"><span class="t-file" id="tr-menu-open">App_Menu_Open_1920x1080_{name}.png</span><span class="t-note">  1920×1080, 16:9 logo only, no background</span></div>
-        <div class="tree-sep"></div>
     <div class="tree-row"><span class="t-root">Images.xcassets</span><span class="t-dir">/</span></div>
     <div class="tree-row"><span class="t-pipe">├── </span><span class="t-json">Contents.json</span></div>
     <div class="tree-row"><span class="t-pipe">├── </span><span class="t-dir">Brand Assets.brandassets</span><span class="t-pipe">/</span></div>
@@ -638,6 +635,12 @@
     <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span></div>
     <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-file" id="tr-tsw">topshelf_wide.png</span><span class="t-note">  2320×720 @1x</span></div>
     <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── </span><span class="t-file" id="tr-tsw-2x">topshelf_wide_2x.png</span><span class="t-note">  4640×1440 @2x</span></div>
+    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-dir">Menu Closed.imageset</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;└── </span><span class="t-file" id="tr-menu-closed-in">menu_closed.png</span><span class="t-note">  1080×1080</span></div>
+    <div class="tree-row"><span class="t-pipe">├── </span><span class="t-dir">Menu Open.imageset</span><span class="t-pipe">/</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span></div>
+    <div class="tree-row"><span class="t-pipe">│&nbsp;&nbsp;&nbsp;└── </span><span class="t-file" id="tr-menu-open-in">menu_open.png</span><span class="t-note">  1920×1080</span></div>
     <div class="tree-row"><span class="t-pipe">└── </span><span class="t-dir">launchscreen.imageset</span><span class="t-pipe">/</span></div>
     <div class="tree-row"><span class="t-pipe">&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-json">Contents.json</span><span class="t-note">  1x / 2x / 3x (universal)</span></div>
     <div class="tree-row"><span class="t-pipe">&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="t-file" id="tr-splash">splash.png</span><span class="t-note">  @1x</span></div>
@@ -841,13 +844,15 @@ const APPLE_BG = { w: 4640, h: 1440, tolerance: 0.05 };
 
 // Apple tree nodes lit up when each asset is uploaded
 const TREE_IDS = {
-  logo16t:    ['tr-front', 'tr-front-2x', 'tr-as-front', 'tr-menu-closed', 'tr-menu-open'],
-  logo1x1:    ['tr-menu-closed', 'tr-menu-open'],
+  logo16t:    ['tr-front', 'tr-front-2x', 'tr-as-front', 'tr-menu-closed-in', 'tr-menu-open-in'],
+  logo1x1:    ['tr-menu-closed-in', 'tr-menu-open-in'],
   bg:         ['tr-back', 'tr-back-2x', 'tr-ts', 'tr-ts-2x', 'tr-tsw', 'tr-tsw-2x', 'tr-as-back'],
   splash:     ['tr-splash', 'tr-splash-2x', 'tr-splash-3x']
 };
 
 const usesFlat = () => platforms.roku || platforms.ctv;
+// Roku and Android PNGs live together in one folder inside the ZIP
+const flatFolderName = () => (platforms.roku && platforms.ctv) ? 'Roku+Android' : platforms.roku ? 'Roku' : 'Android';
 
 // ═══════════════════════════════════════════
 //  PLATFORM SELECTION
@@ -897,9 +902,10 @@ function applyPlatforms() {
   });
   document.getElementById('sub-bg').textContent = platforms.apple ? 'Recommended: 4640 × 1440 px' : 'Any size, landscape recommended';
 
-  const rokuOnly = platforms.roku && !platforms.ctv;
-  document.getElementById('flatTreeTitle').textContent =
-    `${rokuOnly ? 'Roku' : platforms.roku ? 'Roku and CTV' : 'CTV'}, flat PNGs, no subfolders`;
+  const flatFolder = flatFolderName();
+  document.getElementById('flatTreeTitle').textContent = `${flatFolder} folder, PNG files only`;
+  document.getElementById('flatRoot').textContent = flatFolder;
+  document.getElementById('multiNote').textContent = `The ZIP holds two folders: Images.xcassets and ${flatFolder}.`;
 
   updateFilenamePreview();
   updateExportSummary();
@@ -917,14 +923,10 @@ function updateFilenamePreview() {
   document.getElementById('filenamePreview').textContent = zipFileName();
 }
 function updateExportSummary() {
-  let png = 0;
-  if (platforms.roku) png += 6;
-  if (platforms.ctv) png += 5;
-  if (usesFlat()) png += 1;
-  if (platforms.apple) png += 2;
+  const flatCount = (platforms.roku ? 6 : 0) + (platforms.ctv ? 5 : 0) + (usesFlat() ? 1 : 0);
   const parts = [];
-  if (png) parts.push(`${png} PNG file${png > 1 ? 's' : ''}`);
-  if (platforms.apple) parts.push('Images.xcassets');
+  if (usesFlat()) parts.push(`the ${flatFolderName()} folder (${flatCount} PNG files)`);
+  if (platforms.apple) parts.push('the Images.xcassets folder');
   document.getElementById('exportSummary').textContent =
     parts.length ? `Includes ${parts.join(' and ')}. Export unlocks once the required files are uploaded.` : 'Select a platform to enable export';
 }
@@ -1573,6 +1575,12 @@ const cjTopShelfImageset = (name1x, name2x) => j({
 });
 
 // launchscreen.imageset/Contents.json - 1x / 2x / 3x universal (same file for all)
+// Single-image imageset (Menu Closed / Menu Open)
+const cjSingleImageset = (filename) => j({
+  images: [{ filename, idiom: 'universal' }],
+  info: { author: 'xcode', version: 1 }
+});
+
 const cjLaunchscreen = (f1, f2, f3) => j({
   images: [
     { filename: f1, idiom: 'universal', scale: '1x' },
@@ -1670,18 +1678,28 @@ async function exportApple(zip, n) {
     log('ok', '  launchscreen.imageset/splash.png + _2x + _3x (1920×1080)');
   }
 
-  // Menu Closed 1080×1080 - logo only, no background. Lives beside Images.xcassets, not inside it.
-  log('proc', `  App_Menu_Closed_1080x1080_${n}.png (no background)…`);
-  if (!state.images.logo1x1) log('warn', '  No 1:1 logo uploaded. Using the 16:9 logo, letterboxed.');
-  zip.file(`App_Menu_Closed_1080x1080_${n}.png`, await toBlob(getMenuClose(1080, 1080)));
-  log('ok', '  1080×1080 menu closed (transparent)');
+  // Menu Closed 1080×1080 (1:1 logo) and Menu Open 1920×1080 (16:9 logo), both with no background.
+  // Both are written as imagesets inside Images.xcassets, nothing sits outside the catalog.
+  if (!state.images.logo1x1) log('warn', '  No 1:1 logo uploaded, using the 16:9 logo, letterboxed.');
+  log('proc', `  Menu Closed 1080×1080 (no background)…`);
+  const menuClosed = await toBlob(getMenuClose(1080, 1080));
+  {
+    const mc = root.folder('Menu Closed.imageset');
+    mc.file('Contents.json', cjSingleImageset('menu_closed.png'));
+    mc.file('menu_closed.png', menuClosed);
+  }
+  log('ok', '  Images.xcassets/Menu Closed.imageset (1080×1080)');
 
-  // Menu Open 1920×1080 - 16:9 logo only, no background. Also lives beside Images.xcassets.
-  log('proc', `  App_Menu_Open_1920x1080_${n}.png (no background)…`);
-  zip.file(`App_Menu_Open_1920x1080_${n}.png`, await toBlob(getMenuOpen(1920, 1080)));
-  log('ok', '  1920×1080 menu open (transparent)');
+  log('proc', `  Menu Open 1920×1080 (no background)…`);
+  const menuOpen = await toBlob(getMenuOpen(1920, 1080));
+  {
+    const mo = root.folder('Menu Open.imageset');
+    mo.file('Contents.json', cjSingleImageset('menu_open.png'));
+    mo.file('menu_open.png', menuOpen);
+  }
+  log('ok', '  Images.xcassets/Menu Open.imageset (1920×1080)');
 
-  log('ok', '  Apple tvOS, Images.xcassets + 2 PNGs done');
+  log('ok', '  Apple tvOS, Images.xcassets done');
 }
 
 // ═══════════════════════════════════════════
@@ -1698,12 +1716,13 @@ async function runExport() {
   try {
     const zip = new JSZip();
     const name = (document.getElementById('assetName').value.trim() || 'MyApp');
-    if (platforms.ctv)   await exportAndroid(zip, name);
-    if (platforms.roku)  await exportRoku(zip, name);
     if (usesFlat()) {
+      const flat = zip.folder(flatFolderName());
+      if (platforms.ctv)  await exportAndroid(flat, name);
+      if (platforms.roku) await exportRoku(flat, name);
       // Shared splash - exported once for Roku + CTV
       log('proc', `  ${name}-Splash.png…`);
-      zip.file(`${name}-Splash.png`, await toBlob(getSplash(1920, 1080)));
+      flat.file(`${name}-Splash.png`, await toBlob(getSplash(1920, 1080)));
       log('ok', '  Splash 1920×1080');
     }
     if (platforms.apple) await exportApple(zip, name);
